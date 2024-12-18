@@ -17,7 +17,7 @@ public class Multigrid {
         this.radius = radius;
         this.symmetry = symmetry;
         this.offset = offset;
-
+        double multiplier = 2 * Math.PI / symmetry;
         for (int i = 0; i < symmetry; i++) {
             double angle = 2 * i * Math.PI / symmetry;
             for (int j = -radius; j <= radius; j++) {
@@ -25,8 +25,8 @@ public class Multigrid {
                 lineList.add(line);
                 lineMap.put(line, new ArrayList<>());
             }
-            sinTable.add(Math.sin(i * getMultiplier()));
-            cosTable.add(Math.cos(i * getMultiplier()));
+            sinTable.add(Math.sin(i * multiplier));
+            cosTable.add(Math.cos(i * multiplier));
         }
         calculateIntersections();
     }
@@ -124,8 +124,8 @@ public class Multigrid {
                     xd += k * ci;
                     yd += k * si;
                 }
-
-                IntersectionPoint dual = new IntersectionPoint(xd, yd);
+                IntersectionPoint dual =
+                        new IntersectionPoint(roundWithEpsilon(xd), roundWithEpsilon(yd));
                 dualList.add(dual);
 
                 meanX += xd;
@@ -133,10 +133,7 @@ public class Multigrid {
             }
 
             dualMap.put(intersection, dualList);
-//            System.out.println("dualList = " + dualList.size());
         }
-//        System.out.println("offsetList = " + offsetList);
-
     }
 
     private void sortIntersectionPoints() {
@@ -210,10 +207,6 @@ public class Multigrid {
 
     static double roundWithEpsilon(double d) {
         return Math.round(d * (1.0 / EPSILON)) / (1.0 / EPSILON);
-    }
-
-    private double getMultiplier() { // dependencies: symmetry
-        return 2 * Math.PI / this.symmetry;
     }
 }
 
@@ -300,14 +293,6 @@ class GridLine implements Comparator<IntersectionPoint> {
 }
 
 record IntersectionPoint(double x, double y) {
-    IntersectionPoint {
-        if (x == -0.0) {
-            x = 0.0;
-        }
-        if (y == -0.0) {
-            y = 0.0;
-        }
-    }
 
     public double getDistance() {
         return Math.sqrt((x * x) + (y * y));
