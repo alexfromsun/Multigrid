@@ -81,6 +81,16 @@ public class Multigrid {
 
             angles.sort(Comparator.naturalOrder());
 
+            boolean flag = false;
+            if( intersection.x()==0 && intersection.y() == -1.0514622242382672) {
+                System.out.println("intersection = " + intersection);
+                flag = true;
+            }
+             if (intersection.x() == 0.010000000000000009 && intersection.y() == -1.0587276495183207) {
+                 System.out.println("intersection = " + intersection);
+                 flag = true;
+            }
+
             List<IntersectionPoint> offsetList = new ArrayList<>();
             for (Double angle : angles) {
                 double x = intersection.x() + EPSILON * -Math.sin(angle);
