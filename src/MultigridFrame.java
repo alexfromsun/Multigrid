@@ -1,14 +1,10 @@
 import javax.swing.*;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseWheelEvent;
 import java.awt.geom.*;
 import java.util.List;
 import java.util.Set;
-
-import static java.awt.event.InputEvent.CTRL_DOWN_MASK;
 
 public class MultigridFrame extends JFrame {
     public static void main(String[] args) {
@@ -17,7 +13,7 @@ public class MultigridFrame extends JFrame {
 
     private final ColliderPanel colliderPanel = new ColliderPanel();
     private final JPanel toolPanel = new JPanel();
-    private Multigrid multigrid = new Multigrid(5, 1, 0);
+    private Multigrid multigrid = new Multigrid(5, 1, 0.22);
 
     public MultigridFrame() {
         setTitle("Collider frame");
@@ -33,7 +29,7 @@ public class MultigridFrame extends JFrame {
         toolPanel.add(symmetrySpinner);
 
         toolPanel.add(new JLabel("Offset"));
-        SpinnerNumberModel offsetModel = new SpinnerNumberModel(multigrid.getOffset(), 0, 0.99, 0.01);
+        SpinnerNumberModel offsetModel = new SpinnerNumberModel(multigrid.getOffset(), 0, 2, 0.01);
         JSpinner offsetSpinner = new JSpinner(offsetModel);
         toolPanel.add(offsetSpinner);
         JFormattedTextField tf = ((JSpinner.DefaultEditor) offsetSpinner.getEditor()).getTextField();
@@ -88,53 +84,53 @@ public class MultigridFrame extends JFrame {
             drawLines(g2);
 
             g2.setColor(Color.RED);
-//            drawIntersections(g2);
 
-            drawDuals(g2);
+            drawTiles(g2);
 
             g2.dispose();
         }
 
-        private void drawDuals(Graphics2D g2) {
+        private void drawTiles(Graphics2D g2) {
             g2.setColor(Color.BLUE);
 
-            for (IntersectionPoint intersection : multigrid.getIntersections()) {
+            List<GridTile> tileList = multigrid.getTileList();
+            for (int i = 0; i < tileList.size(); i++)
+            {
+                GridTile tile = tileList.get(i);
                 Path2D.Double path = new Path2D.Double();
-                List<IntersectionPoint> dualList = multigrid.getDualMap().get(intersection);
+                List<GridPoint> vertextList = tile.getVertexList();
 
-//                if (dualList.size() == 4) {
-//                if (intersection.x() == 2.0 && intersection.y() == -0.6498393924658127)
-                {
-//                    System.out.println("dualList = " + dualList);
-                    path.moveTo(dualList.get(0).x(), dualList.get(0).y());
-                    for (int i = 1; i < dualList.size(); i++) {
-                        IntersectionPoint dual = dualList.get(i);
-                        path.lineTo(dual.x(), dual.y());
-                    }
-                    path.closePath();
-                    g2.draw(path);
-//                    Shape clip = g2.getClip();
-//                    g2.setClip(path);
-//                    fillCircle(g2, dualList.get(0).x(), dualList.get(0).y(), .2);
-//                    g2.setClip(clip);
+                path.moveTo(vertextList.get(0).x(), vertextList.get(0).y());
+                for (int j = 1; j < vertextList.size(); j++) {
+                    GridPoint dual = vertextList.get(j);
+                    path.lineTo(dual.x(), dual.y());
                 }
+                path.closePath();
+                g2.draw(path);
+
+               /* GridPoint intersection = tile.getIntersection();
+                Set<GridLine> lineSet = multigrid.getIntersectedLineSet(intersection);
+
+                Graphics2D temp = (Graphics2D) g2.create();
+                temp.setColor(Color.MAGENTA);
+                temp.translate(-intersection.x(), -intersection.y());
+                temp.draw(path);
+                temp.dispose();
+                drawPoint(g2, intersection);*/
             }
         }
 
         private void drawAxis(Graphics2D g2) {
             g2.setColor(Color.BLUE);
             fillCircle(g2, 0, 0, .05);
-//            g2.setStroke(new BasicStroke((float) .05));
-//            drawLine(g2, new GridLine(0,0));
-//            drawLine(g2, new GridLine(-Math.PI/2,0));
+            g2.setStroke(new BasicStroke((float) .05));
+            drawLine(g2, new GridLine(0,0));
+            drawLine(g2, new GridLine(-Math.PI/2,0));
         }
 
         private void debug(Graphics2D g2) {
             g2.setStroke(new BasicStroke((float) .05));
-
             fillCircle(g2, 0, 0, .5);
-
-//            fillCircle(g2, 1, 1, .2);
 
             GridLine lineY = new GridLine(0, 0);
             drawLine(g2, lineY);
@@ -148,14 +144,12 @@ public class MultigridFrame extends JFrame {
             GridLine line3 = new GridLine(0, 1);
             drawLine(g2, line3);
 
-            IntersectionPoint p = lineX.getIntersectionPoint(line3);
+            GridPoint p = lineX.getIntersectionPoint(line3);
             g2.setColor(Color.RED);
             drawPoint(g2, p);
 
-            IntersectionPoint pp = line2.getIntersectionPoint(line3);
+            GridPoint pp = line2.getIntersectionPoint(line3);
             g2.setColor(Color.MAGENTA);
-            System.out.println("pp = " + pp);
-
             drawPoint(g2, pp);
         }
 
@@ -165,7 +159,9 @@ public class MultigridFrame extends JFrame {
             transform.setToIdentity();
             transform.translate(getWidth() / 2.0, getHeight() / 2.0);
 
-            double scale = 50;
+            int size = Math.max(getWidth(), getHeight());
+//            double scale =  (size/(20.0 / 1.2 *multigrid.getRadius()));
+            double scale = 40;
             transform.scale(scale, scale);
         }
 
@@ -219,13 +215,13 @@ public class MultigridFrame extends JFrame {
         }
 
         private void drawIntersections(Graphics2D g2) {
-            Set<IntersectionPoint> intersectionSet = multigrid.getIntersections();
-            for (IntersectionPoint point : intersectionSet) {
+            Set<GridPoint> intersectionSet = multigrid.getIntersections();
+            for (GridPoint point : intersectionSet) {
                 drawPoint(g2, point);
             }
         }
 
-        private void drawPoint(Graphics2D g2, IntersectionPoint point) {
+        private void drawPoint(Graphics2D g2, GridPoint point) {
             fillCircle(g2, point.x(), point.y(), .05);
         }
     }

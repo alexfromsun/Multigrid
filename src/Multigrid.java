@@ -5,13 +5,15 @@ public class Multigrid {
     private final int radius;
     private final double offset;
     private final List<GridLine> lineList = new ArrayList<>();
-    private final HashMap<IntersectionPoint, Set<GridLine>> intersectionMap = new HashMap<>();
-    private final HashMap<GridLine, List<IntersectionPoint>> lineMap = new HashMap<>();
+    private final HashMap<GridPoint, Set<GridLine>> intersectionMap = new HashMap<>();
+    private final HashMap<GridLine, List<GridPoint>> lineMap = new HashMap<>();
 
     private List<Double> sinTable = new ArrayList<>();
     private List<Double> cosTable = new ArrayList<>();
 
-    private Map<IntersectionPoint, List<IntersectionPoint>> dualMap = new HashMap<>();
+    private Map<GridPoint, List<GridPoint>> dualMap = new HashMap<>();
+
+    private List<GridTile> tileList;
 
     public Multigrid(int symmetry, int radius, double offset) {
         this.radius = radius;
@@ -32,17 +34,17 @@ public class Multigrid {
     }
 
     private void calculateIntersections() {
-        Map<IntersectionPoint, IntersectionPoint> epsilonIntersectionMap = new HashMap<>();
+        Map<GridPoint, GridPoint> epsilonIntersectionMap = new HashMap<>();
 
         for (int i = 0; i < lineList.size(); i++) {
             GridLine lineOne = lineList.get(i);
             for (int j = i + 1; j < lineList.size(); j++) {
                 GridLine lineTwo = lineList.get(j);
-                IntersectionPoint point = lineOne.getIntersectionPoint(lineTwo);
+                GridPoint point = lineOne.getIntersectionPoint(lineTwo);
                 Set<GridLine> lineSet;
                 if (point != null) {
-                    IntersectionPoint roundedPoint = new IntersectionPoint(roundWithEpsilon(point.x()), roundWithEpsilon(point.y()));
-                    IntersectionPoint existingPoint = epsilonIntersectionMap.get(roundedPoint);
+                    GridPoint roundedPoint = new GridPoint(roundWithEpsilon(point.x()), roundWithEpsilon(point.y()));
+                    GridPoint existingPoint = epsilonIntersectionMap.get(roundedPoint);
                     if (existingPoint != null) {
                         lineSet = intersectionMap.get(existingPoint);
                         point = existingPoint;
@@ -68,9 +70,17 @@ public class Multigrid {
             }
         }
 
+// todo: does sorting needed at all?
         sortIntersectionPoints();
 
-        for (IntersectionPoint intersection : getIntersections()) {
+        calculateTiles();
+    }
+
+    private void calculateTiles() {
+        tileList = new ArrayList<>();
+        for (GridPoint intersection : getIntersections()) {
+            GridTile tile = new GridTile(intersection);
+
             List<Double> angles = new ArrayList<>();
             Set<GridLine> lineSet = getIntersectedLineSet(intersection);
 
@@ -81,29 +91,21 @@ public class Multigrid {
 
             angles.sort(Comparator.naturalOrder());
 
-            boolean flag = false;
-            if( intersection.x()==0 && intersection.y() == -1.0514622242382672) {
-                System.out.println("intersection = " + intersection);
-                flag = true;
-            }
-             if (intersection.x() == 0.010000000000000009 && intersection.y() == -1.0587276495183207) {
-                 System.out.println("intersection = " + intersection);
-                 flag = true;
-            }
-
-            List<IntersectionPoint> offsetList = new ArrayList<>();
+            List<GridPoint> offsetList = new ArrayList<>();
             for (Double angle : angles) {
                 double x = intersection.x() + EPSILON * -Math.sin(angle);
                 double y = intersection.y() + EPSILON * Math.cos(angle);
-                IntersectionPoint offset = new IntersectionPoint(x, y);
+                GridPoint offset = new GridPoint(x, y);
                 offsetList.add(offset);
             }
 
-            List<IntersectionPoint> medianList = new ArrayList<>();
+            tile.setOffsetList(offsetList);
+
+            List<GridPoint> medianList = new ArrayList<>();
             int iMax = offsetList.size();
 
             for (int i = 0; i < iMax; i++) {
-                IntersectionPoint offset = offsetList.get(i);
+                GridPoint offset = offsetList.get(i);
                 double x0 = offset.x();
                 double y0 = offset.y();
 
@@ -113,15 +115,15 @@ public class Multigrid {
                 double xm = (x0 + x1) / 2;
                 double ym = (y0 + y1) / 2;
 
-                IntersectionPoint median = new IntersectionPoint(xm, ym);
+                GridPoint median = new GridPoint(xm, ym);
                 medianList.add(median);
-
             }
 
-            List<IntersectionPoint> dualList = new ArrayList<>();
+            tile.setMedianList(medianList);
+            List<GridPoint> dualList = new ArrayList<>();
             double meanX = 0, meanY = 0;
 
-            for (IntersectionPoint median : medianList) {
+            for (GridPoint median : medianList) {
                 double xd = 0, yd = 0;
 
                 for (int i = 0; i < this.symmetry; i++) {
@@ -134,8 +136,8 @@ public class Multigrid {
                     xd += k * ci;
                     yd += k * si;
                 }
-                IntersectionPoint dual =
-                        new IntersectionPoint(roundWithEpsilon(xd), roundWithEpsilon(yd));
+                GridPoint dual =
+                        new GridPoint(roundWithEpsilon(xd), roundWithEpsilon(yd));
                 dualList.add(dual);
 
                 meanX += xd;
@@ -143,25 +145,34 @@ public class Multigrid {
             }
 
             dualMap.put(intersection, dualList);
+            tile.setVertexList(dualList);
+            if (tile.isRhombus()) {
+                tileList.add(tile);
+            }
         }
+        tileList = Collections.unmodifiableList(tileList);
+    }
+
+    public List<GridTile> getTileList() {
+        return tileList;
     }
 
     private void sortIntersectionPoints() {
         for (GridLine line : lineMap.keySet()) {
-            List<IntersectionPoint> points = lineMap.get(line);
+            List<GridPoint> points = lineMap.get(line);
             points.sort(line);
         }
     }
 
-    public Set<IntersectionPoint> getIntersections() {
+    public Set<GridPoint> getIntersections() {
         return intersectionMap.keySet();
     }
 
-    public Map<IntersectionPoint, List<IntersectionPoint>> getDualMap() {
+    public Map<GridPoint, List<GridPoint>> getDualMap() {
         return dualMap;
     }
 
-    public Set<GridLine> getIntersectedLineSet(IntersectionPoint point) {
+    public Set<GridLine> getIntersectedLineSet(GridPoint point) {
         return intersectionMap.get(point);
     }
 
@@ -181,7 +192,7 @@ public class Multigrid {
         return lineList;
     }
 
-    public List<IntersectionPoint> getIntersectionList(GridLine line) {
+    public List<GridPoint> getIntersectionList(GridLine line) {
         return lineMap.get(line);
     }
 
@@ -189,8 +200,8 @@ public class Multigrid {
 
         GridLine line = new GridLine(0, 0);
 
-        IntersectionPoint p1 = new IntersectionPoint(1, 0);
-        IntersectionPoint p2 = new IntersectionPoint(5, 0);
+        GridPoint p1 = new GridPoint(1, 0);
+        GridPoint p2 = new GridPoint(5, 0);
         System.out.println("line.isPointOnLine(p1) = " + line.isPointOnLine(p1));
         System.out.println("line.isPointOnLine(p2) = " + line.isPointOnLine(p2));
 
@@ -220,7 +231,7 @@ public class Multigrid {
     }
 }
 
-class GridLine implements Comparator<IntersectionPoint> {
+class GridLine implements Comparator<GridPoint> {
     private final double angle;
     private final double offset;
     protected final double angleSin;
@@ -241,7 +252,7 @@ class GridLine implements Comparator<IntersectionPoint> {
         return offset;
     }
 
-    public IntersectionPoint getIntersectionPoint(GridLine line) {
+    public GridPoint getIntersectionPoint(GridLine line) {
         if (angle == line.getAngle()) {
             return null;
         }
@@ -251,34 +262,19 @@ class GridLine implements Comparator<IntersectionPoint> {
         }
         double offsetOne = offset;
         double offsetTwo = line.offset;
-//        double x = (offsetOne * line.angleCos - offsetTwo * angleCos) / determinant;
-//        double y = (offsetOne * line.angleSin - offsetTwo * angleSin) / determinant;
 
         double y = -(offsetOne * line.angleCos - offsetTwo * angleCos) / determinant;
         double x = (offsetOne * line.angleSin - offsetTwo * angleSin) / determinant;
 
-        // round up the coordinates
-
-//        System.out.println("x = " + x);
-//        System.out.println("Multigrid.roundWithEpsilon(x) = " + Multigrid.roundWithEpsilon(x));
-//        System.out.println();
-
-//        System.out.print("x = " + x);
-//        System.out.println(" Multigrid.roundWithEpsilon(x) = " + Multigrid.roundWithEpsilon(x));
-//        return new IntersectionPoint(Multigrid.roundWithEpsilon(x), y);
-//        return new IntersectionPoint(Multigrid.roundWithEpsilon(x), Multigrid.roundWithEpsilon(y));
-        return new IntersectionPoint(x, y);
+        return new GridPoint(x, y);
     }
 
-    public boolean isPointOnLine(IntersectionPoint p) {
+    public boolean isPointOnLine(GridPoint p) {
         double lineValue = -p.x() * angleSin + p.y() * angleCos - offset;
         return Multigrid.equalWithEpsilon(lineValue, 0);
     }
 
-    public double reversePoint(IntersectionPoint point) {
-//        double xOriginal = point.x() * angleCos - point.y() * angleSin;
-//        double yOriginal = point.x() * angleSin - point.y() * angleCos + offset;
-
+    public double reversePoint(GridPoint point) {
         double yOriginal = point.x() * angleCos + point.y() * angleSin - offset;
         double xOriginal = point.x() * angleSin - point.y() * angleCos;
 
@@ -286,13 +282,13 @@ class GridLine implements Comparator<IntersectionPoint> {
             xOriginal = 0;
         }
         if (!Multigrid.equalWithEpsilon(yOriginal, 0)) {
-//            throw new RuntimeException("y is not close to zero!");
+            throw new RuntimeException("y is not close to zero!");
         }
         return xOriginal;
     }
 
     @Override
-    public int compare(IntersectionPoint o1, IntersectionPoint o2) {
+    public int compare(GridPoint o1, GridPoint o2) {
         return Double.compare(reversePoint(o1), reversePoint(o2));
     }
 
@@ -302,18 +298,17 @@ class GridLine implements Comparator<IntersectionPoint> {
     }
 }
 
-record IntersectionPoint(double x, double y) {
+record GridPoint(double x, double y) {
 
     public double getDistance() {
         return Math.sqrt((x * x) + (y * y));
     }
 
-    public double getDistance(IntersectionPoint point) {
-        double distance = Math.sqrt(Math.pow(point.x - x, 2) + Math.pow(point.y - y, 2));
-        return Multigrid.roundWithEpsilon(distance);
+    public double getDistance(GridPoint point) {
+        return Math.sqrt(Math.pow(point.x - x, 2) + Math.pow(point.y - y, 2));
     }
 
-    public IntersectionPoint rotateAndShift(double angle, double offset) {
+    public GridPoint rotateAndShift(double angle, double offset) {
         // Rotate the point
         double rotatedX = x * Math.cos(angle) - y * Math.sin(angle);
         double rotatedY = x * Math.sin(angle) + y * Math.cos(angle);
@@ -322,6 +317,65 @@ record IntersectionPoint(double x, double y) {
         double shiftedX = rotatedX - offset * Math.sin(angle);
         double shiftedY = rotatedY + offset * Math.cos(angle);
 
-        return new IntersectionPoint(shiftedX, shiftedY);
+        return new GridPoint(shiftedX, shiftedY);
+    }
+}
+
+class GridTile {
+    private final GridPoint intersection;
+    private List<GridPoint> vertexList;
+    private List<GridPoint> offsetList;
+    private List<GridPoint> medianList;
+
+    public GridTile(GridPoint intersectionPoint) {
+        this.intersection = intersectionPoint;
+    }
+
+    public GridPoint getIntersection() {
+        return intersection;
+    }
+
+    public void setVertexList(List<GridPoint> vertexList) {
+        this.vertexList = Collections.unmodifiableList(vertexList);
+    }
+
+    public List<GridPoint> getVertexList() {
+        return vertexList;
+    }
+
+    public List<GridPoint> getOffsetList() {
+        return offsetList;
+    }
+
+    public void setOffsetList(List<GridPoint> offsetList) {
+        this.offsetList = Collections.unmodifiableList(offsetList);
+    }
+
+    public List<GridPoint> getMedianList() {
+        return medianList;
+    }
+
+    public void setMedianList(List<GridPoint> medianList) {
+        this.medianList = Collections.unmodifiableList(medianList);
+    }
+
+    public boolean isRhombus() {
+        if (vertexList.size() != 4) {
+            return false;
+        }
+        GridPoint p1 = vertexList.get(0);
+        GridPoint p2 = vertexList.get(1);
+        GridPoint p3 = vertexList.get(2);
+        GridPoint p4 = vertexList.get(3);
+
+        double side1 = p1.getDistance(p2);
+        double side2 = p2.getDistance(p3);
+        double side3 = p3.getDistance(p4);
+        double side4 = p4.getDistance(p1);
+
+        return Multigrid.equalWithEpsilon(side1, side2) &&
+                Multigrid.equalWithEpsilon(side2, side3) &&
+                Multigrid.equalWithEpsilon(side3, side4) &&
+                Multigrid.equalWithEpsilon(side4, side1);
     }
 }
