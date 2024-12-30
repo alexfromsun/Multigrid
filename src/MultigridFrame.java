@@ -1,10 +1,14 @@
 import javax.swing.*;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
 import java.awt.geom.*;
 import java.util.List;
 import java.util.Set;
+
+import static java.awt.event.InputEvent.CTRL_DOWN_MASK;
 
 public class MultigridFrame extends JFrame {
     public static void main(String[] args) {
@@ -12,34 +16,50 @@ public class MultigridFrame extends JFrame {
     }
 
     private final ColliderPanel colliderPanel = new ColliderPanel();
-    private final JPanel toolPanel = new JPanel();
+    private final JToolBar toolBar = new JToolBar();
     private Multigrid multigrid = new Multigrid(5, 1, 0.22);
+    private JLabel zoomLabel = new JLabel("100%");
 
     public MultigridFrame() {
         setTitle("Collider frame");
         setMinimumSize(new Dimension(800, 600));
 //        setExtendedState(JFrame.MAXIMIZED_BOTH);
 
-        add(colliderPanel);
+        final JScrollPane scrollPane = new JScrollPane(colliderPanel);
 
-        toolPanel.setBorder(BorderFactory.createEtchedBorder());
-        toolPanel.add(new JLabel("Symmetry"));
+        scrollPane.getVerticalScrollBar().setUnitIncrement(30);
+        scrollPane.getHorizontalScrollBar().setUnitIncrement(30);
+        add(scrollPane);
+
+        toolBar.add(new JLabel("Symmetry "));
         SpinnerNumberModel symmetryModel = new SpinnerNumberModel(multigrid.getSymmetry(), 1, 10, 1);
         final JSpinner symmetrySpinner = new JSpinner(symmetryModel);
-        toolPanel.add(symmetrySpinner);
+        symmetrySpinner.setMaximumSize(symmetrySpinner.getPreferredSize());
+        toolBar.add(symmetrySpinner);
+        toolBar.addSeparator();
 
-        toolPanel.add(new JLabel("Offset"));
+        toolBar.add(new JLabel("Offset "));
+
         SpinnerNumberModel offsetModel = new SpinnerNumberModel(multigrid.getOffset(), 0, 2, 0.01);
         JSpinner offsetSpinner = new JSpinner(offsetModel);
-        toolPanel.add(offsetSpinner);
+        offsetSpinner.setEditor(new JSpinner.NumberEditor(offsetSpinner, "#.##"));
+        Dimension preferredSize = offsetSpinner.getPreferredSize();
+        preferredSize.width +=25;
+        offsetSpinner.setMaximumSize(preferredSize);
+
+        toolBar.add(offsetSpinner);
+        toolBar.addSeparator();
+
         JFormattedTextField tf = ((JSpinner.DefaultEditor) offsetSpinner.getEditor()).getTextField();
         tf.setColumns(3);
-        add(toolPanel, BorderLayout.SOUTH);
 
-        toolPanel.add(new JLabel("Radius"));
-        SpinnerNumberModel radiusModel = new SpinnerNumberModel(multigrid.getRadius(), 0, 10, 1);
+        toolBar.add(new JLabel("Radius "));
+
+        SpinnerNumberModel radiusModel = new SpinnerNumberModel(multigrid.getRadius(), 1, 10, 1);
         JSpinner radiusSpinner = new JSpinner(radiusModel);
-        toolPanel.add(radiusSpinner);
+        radiusSpinner.setMaximumSize(radiusSpinner.getPreferredSize());
+        toolBar.add(radiusSpinner);
+        toolBar.addSeparator();
 
         ChangeListener changeListener = _ -> {
             int symmetry = (int) symmetrySpinner.getValue();
@@ -53,12 +73,35 @@ public class MultigridFrame extends JFrame {
         radiusSpinner.addChangeListener(changeListener);
         offsetSpinner.addChangeListener(changeListener);
 
-        add(toolPanel, BorderLayout.SOUTH);
+        toolBar.add(Box.createHorizontalGlue());
+
+        toolBar.add(zoomLabel);
+        toolBar.addSeparator();
+        JButton plusButton = new JButton("+");
+        plusButton.setToolTipText("Ctrl +");
+
+        toolBar.add(plusButton);
+        JButton minusButton = new JButton("-");
+        minusButton.setToolTipText("Ctrl -");
+        toolBar.add(minusButton);
+
+/*        ActionListener zoomAction = e -> {
+            int direction = e.getSource() == plusButton ? -1 : 1;
+            colliderPanel.updateZoom(direction);
+            zoomLabel.setText((int) (colliderPanel.getZoom() * 100) + "%");
+        };
+
+        minusButton.addActionListener(zoomAction);
+        plusButton.addActionListener(zoomAction);*/
+
+
+        add(toolBar, BorderLayout.PAGE_START);
         SwingUtilities.invokeLater(() -> offsetSpinner.requestFocus());
     }
 
     private class ColliderPanel extends JPanel {
         private final AffineTransform transform = new AffineTransform();
+        private double zoom = 1;
 
         public ColliderPanel() {
             ToolTipManager.sharedInstance().registerComponent(this);
@@ -159,9 +202,7 @@ public class MultigridFrame extends JFrame {
             transform.setToIdentity();
             transform.translate(getWidth() / 2.0, getHeight() / 2.0);
 
-            int size = Math.max(getWidth(), getHeight());
-//            double scale =  (size/(20.0 / 1.2 *multigrid.getRadius()));
-            double scale = 40;
+            double scale = Math.min(getWidth(), getHeight()) / (15 * multigrid.getRadius());
             transform.scale(scale, scale);
         }
 
