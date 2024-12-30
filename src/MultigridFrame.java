@@ -44,7 +44,7 @@ public class MultigridFrame extends JFrame {
         JSpinner offsetSpinner = new JSpinner(offsetModel);
         offsetSpinner.setEditor(new JSpinner.NumberEditor(offsetSpinner, "#.##"));
         Dimension preferredSize = offsetSpinner.getPreferredSize();
-        preferredSize.width +=25;
+        preferredSize.width += 25;
         offsetSpinner.setMaximumSize(preferredSize);
 
         toolBar.add(offsetSpinner);
@@ -85,14 +85,14 @@ public class MultigridFrame extends JFrame {
         minusButton.setToolTipText("Ctrl -");
         toolBar.add(minusButton);
 
-/*        ActionListener zoomAction = e -> {
+        ActionListener zoomAction = e -> {
             int direction = e.getSource() == plusButton ? -1 : 1;
             colliderPanel.updateZoom(direction);
             zoomLabel.setText((int) (colliderPanel.getZoom() * 100) + "%");
         };
 
         minusButton.addActionListener(zoomAction);
-        plusButton.addActionListener(zoomAction);*/
+        plusButton.addActionListener(zoomAction);
 
 
         add(toolBar, BorderLayout.PAGE_START);
@@ -105,6 +105,33 @@ public class MultigridFrame extends JFrame {
 
         public ColliderPanel() {
             ToolTipManager.sharedInstance().registerComponent(this);
+        }
+
+        public double getZoom() {
+            return zoom;
+        }
+
+        public void updateZoom(int direction) {
+            zoom += (-.1 * direction);
+            JViewport viewport = (JViewport) getParent();
+            int viewWidth = (int) (viewport.getWidth() * zoom);
+            int viewHeight = (int) (viewport.getHeight() * zoom);
+
+            Dimension preferredSize = getPreferredSize();
+
+            Point viewPosition = viewport.getViewPosition();
+
+            int newViewX = viewPosition.x + (viewWidth - preferredSize.width)/2;
+            int newViewY = viewPosition.y + (viewHeight - preferredSize.height)/2;
+
+            setPreferredSize(new Dimension(viewWidth ,viewHeight));
+            viewport.setViewPosition(new Point(newViewX,newViewY));
+            revalidate();
+            repaint();
+        }
+
+        public void setZoom(double zoom) {
+            this.zoom = zoom;
         }
 
         protected void paintComponent(Graphics g) {
@@ -137,8 +164,7 @@ public class MultigridFrame extends JFrame {
             g2.setColor(Color.BLUE);
 
             List<GridTile> tileList = multigrid.getTileList();
-            for (int i = 0; i < tileList.size(); i++)
-            {
+            for (int i = 0; i < tileList.size(); i++) {
                 GridTile tile = tileList.get(i);
                 Path2D.Double path = new Path2D.Double();
                 List<GridPoint> vertextList = tile.getVertexList();
@@ -167,8 +193,8 @@ public class MultigridFrame extends JFrame {
             g2.setColor(Color.BLUE);
             fillCircle(g2, 0, 0, .05);
             g2.setStroke(new BasicStroke((float) .05));
-            drawLine(g2, new GridLine(0,0));
-            drawLine(g2, new GridLine(-Math.PI/2,0));
+            drawLine(g2, new GridLine(0, 0));
+            drawLine(g2, new GridLine(-Math.PI / 2, 0));
         }
 
         private void debug(Graphics2D g2) {
@@ -202,7 +228,12 @@ public class MultigridFrame extends JFrame {
             transform.setToIdentity();
             transform.translate(getWidth() / 2.0, getHeight() / 2.0);
 
-            double scale = Math.min(getWidth(), getHeight()) / (15 * multigrid.getRadius());
+            JViewport viewport = (JViewport) getParent();
+            int viewWidth = (int) (viewport.getWidth() * zoom);
+            int viewHeight = (int) (viewport.getHeight() * zoom);
+
+            double scale = (double) Math.min(viewWidth, viewHeight) / (15 * multigrid.getRadius());
+            scale *= zoom;
             transform.scale(scale, scale);
         }
 
