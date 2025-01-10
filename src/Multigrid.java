@@ -2,27 +2,28 @@ import java.util.*;
 
 public class Multigrid {
     private final int symmetry;
-    private final int radius;
+    private final int gridRadius;
     private final double offset;
     private final List<GridLine> lineList = new ArrayList<>();
     private final HashMap<GridPoint, Set<GridLine>> intersectionMap = new HashMap<>();
     private final HashMap<GridLine, List<GridPoint>> lineMap = new HashMap<>();
 
-    private List<Double> sinTable = new ArrayList<>();
-    private List<Double> cosTable = new ArrayList<>();
+    private final List<Double> sinTable = new ArrayList<>();
+    private final List<Double> cosTable = new ArrayList<>();
 
     private Map<GridPoint, List<GridPoint>> dualMap = new HashMap<>();
 
     private List<GridTile> tileList;
+    private double tilingRadius;
 
-    public Multigrid(int symmetry, int radius, double offset) {
-        this.radius = radius;
+    public Multigrid(int symmetry, int gridRadius, double offset) {
+        this.gridRadius = gridRadius;
         this.symmetry = symmetry;
         this.offset = offset;
         double multiplier = 2 * Math.PI / symmetry;
         for (int i = 0; i < symmetry; i++) {
             double angle = 2 * i * Math.PI / symmetry;
-            for (int j = -radius; j <= radius; j++) {
+            for (int j = -gridRadius; j <= gridRadius; j++) {
                 GridLine line = new GridLine(angle, offset + j);
                 lineList.add(line);
                 lineMap.put(line, new ArrayList<>());
@@ -79,7 +80,6 @@ public class Multigrid {
     private void calculateTiles() {
         tileList = new ArrayList<>();
         for (GridPoint intersection : getIntersections()) {
-            GridTile tile = new GridTile(intersection);
 
             List<Double> angles = new ArrayList<>();
             Set<GridLine> lineSet = getIntersectedLineSet(intersection);
@@ -99,8 +99,6 @@ public class Multigrid {
                 offsetList.add(offset);
             }
 
-            tile.setOffsetList(offsetList);
-
             List<GridPoint> medianList = new ArrayList<>();
             int iMax = offsetList.size();
 
@@ -119,7 +117,6 @@ public class Multigrid {
                 medianList.add(median);
             }
 
-            tile.setMedianList(medianList);
             List<GridPoint> dualList = new ArrayList<>();
             double meanX = 0, meanY = 0;
 
@@ -145,16 +142,54 @@ public class Multigrid {
             }
 
             dualMap.put(intersection, dualList);
-            tile.setVertexList(dualList);
-            if (tile.isRhombus()) {
+
+            if (isRhombus(dualList)) {
+
+                Set<GridLine> gridLines = intersectionMap.get(intersection);
+                GridTile tile = new GridTile(intersection, gridLines, dualList);
+                tile.setOffsetList(offsetList);
+                tile.setMedianList(medianList);
+
                 tileList.add(tile);
+                for (GridPoint point : dualList) {
+                    if (point.x() > tilingRadius) {
+                        tilingRadius = point.x();
+                    }
+                    if (point.y() > tilingRadius) {
+                        tilingRadius = point.y();
+                    }
+                }
             }
         }
         tileList = Collections.unmodifiableList(tileList);
     }
 
+    public boolean isRhombus(List<GridPoint> pointList) {
+        if (pointList.size() != 4) {
+            return false;
+        }
+        GridPoint p1 = pointList.get(0);
+        GridPoint p2 = pointList.get(1);
+        GridPoint p3 = pointList.get(2);
+        GridPoint p4 = pointList.get(3);
+
+        double side1 = p1.getDistance(p2);
+        double side2 = p2.getDistance(p3);
+        double side3 = p3.getDistance(p4);
+        double side4 = p4.getDistance(p1);
+
+        return Multigrid.equalWithEpsilon(side1, side2) &&
+                Multigrid.equalWithEpsilon(side2, side3) &&
+                Multigrid.equalWithEpsilon(side3, side4) &&
+                Multigrid.equalWithEpsilon(side4, side1);
+    }
+
     public List<GridTile> getTileList() {
         return tileList;
+    }
+
+    public double getTilingRadius() {
+        return tilingRadius;
     }
 
     private void sortIntersectionPoints() {
@@ -176,8 +211,8 @@ public class Multigrid {
         return intersectionMap.get(point);
     }
 
-    public int getRadius() {
-        return radius;
+    public int getGridRadius() {
+        return gridRadius;
     }
 
     public int getSymmetry() {
@@ -323,20 +358,79 @@ record GridPoint(double x, double y) {
 
 class GridTile {
     private final GridPoint intersection;
-    private List<GridPoint> vertexList;
+    private final Set<GridLine> lineSet;
+    private final List<GridPoint> vertexList;
     private List<GridPoint> offsetList;
     private List<GridPoint> medianList;
+    private double area;
+    private GridPoint orientation;
 
-    public GridTile(GridPoint intersectionPoint) {
+    public GridTile(GridPoint intersectionPoint, Set<GridLine> lineSet, List<GridPoint> vertexList) {
         this.intersection = intersectionPoint;
+        this.lineSet = lineSet;
+        this.vertexList = Collections.unmodifiableList(vertexList);
+
+        GridPoint p1 = vertexList.get(0);
+        GridPoint p2 = vertexList.get(1);
+        GridPoint p3 = vertexList.get(2);
+        GridPoint p4 = vertexList.get(3);
+
+        double d1 = p1.getDistance(p3);
+        double d2 = p2.getDistance(p4);
+        area = Multigrid.roundWithEpsilon(.5 * d1 * d2);
+
+        GridPoint a = p1, b = p3;
+        if (d2 > d1) {
+            a = p2;
+            b = p4;
+        }
+
+        double dx = b.x() - a.x();
+        double dy = b.y() - a.y();
+        double theta = Math.atan2(dy, dx);
+
+        if (theta < 0) {
+            theta += 2 * Math.PI;
+//            System.out.println("Negative");
+        } else {
+//            System.out.println("Positive");
+        }
+
+        if (theta >= Math.PI) {
+            orientation = b;
+        } else {
+            orientation = a;
+        }
+
+        if (Multigrid.roundWithEpsilon(intersectionPoint.y()) >= 0 ) {
+            orientation = orientation == a? b:a;
+        }
+
+        if (Multigrid.roundWithEpsilon(intersectionPoint.y()) == 0 && intersectionPoint.x() < 0) {
+            orientation = orientation == a? b:a;
+        }
+//        System.out.println("theta = " + theta);
+
+//        System.out.println("Multigrid.roundWithEpsilon(intersectionPoint.y()) = " + Multigrid.roundWithEpsilon(intersectionPoint.y()));
+
+        double signedArea =
+                (p1.x() * p2.y() + p2.x() * p3.y() + p3.x() * p4.y() + p4.x() * p1.y())
+                        - (p2.x() * p1.y() + p3.x() * p2.y() + p4.x() * p3.y() + p1.x() * p4.y());
+
+        if (signedArea < 0) {
+            // flip the order, e.g., swap p2 <-> p4
+            System.out.println("Negative!!!");
+        } else {
+//            System.out.println("pos");
+        }
+    }
+
+    public GridPoint getOrientation() {
+        return orientation;
     }
 
     public GridPoint getIntersection() {
         return intersection;
-    }
-
-    public void setVertexList(List<GridPoint> vertexList) {
-        this.vertexList = Collections.unmodifiableList(vertexList);
     }
 
     public List<GridPoint> getVertexList() {
@@ -357,25 +451,5 @@ class GridTile {
 
     public void setMedianList(List<GridPoint> medianList) {
         this.medianList = Collections.unmodifiableList(medianList);
-    }
-
-    public boolean isRhombus() {
-        if (vertexList.size() != 4) {
-            return false;
-        }
-        GridPoint p1 = vertexList.get(0);
-        GridPoint p2 = vertexList.get(1);
-        GridPoint p3 = vertexList.get(2);
-        GridPoint p4 = vertexList.get(3);
-
-        double side1 = p1.getDistance(p2);
-        double side2 = p2.getDistance(p3);
-        double side3 = p3.getDistance(p4);
-        double side4 = p4.getDistance(p1);
-
-        return Multigrid.equalWithEpsilon(side1, side2) &&
-                Multigrid.equalWithEpsilon(side2, side3) &&
-                Multigrid.equalWithEpsilon(side3, side4) &&
-                Multigrid.equalWithEpsilon(side4, side1);
     }
 }

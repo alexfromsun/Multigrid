@@ -17,7 +17,7 @@ public class MultigridFrame extends JFrame {
 
     private final ColliderPanel colliderPanel = new ColliderPanel();
     private final JToolBar toolBar = new JToolBar();
-    private Multigrid multigrid = new Multigrid(5, 1, 0.22);
+    private Multigrid multigrid = new Multigrid(5, 1, 0);
     private JLabel zoomLabel = new JLabel("100%");
 
     public MultigridFrame() {
@@ -25,7 +25,31 @@ public class MultigridFrame extends JFrame {
         setMinimumSize(new Dimension(800, 600));
 //        setExtendedState(JFrame.MAXIMIZED_BOTH);
 
-        final JScrollPane scrollPane = new JScrollPane(colliderPanel);
+        final JScrollPane scrollPane = new JScrollPane(colliderPanel) {
+                @Override
+                protected void processMouseWheelEvent(MouseWheelEvent e) {
+
+//                    Point convertedPoint = SwingUtilities.convertPoint(e.getComponent(), e.getPoint(), colliderPanel);
+//                    System.out.println("convertedPoint = " + convertedPoint);
+//                    int deltaX = colliderPanel.getWidth()/2 - e.getPoint().x;
+//                    int deltaY = colliderPanel.getHeight()/2 - e.getPoint().y;
+
+//                    System.out.println("deltaX = " + deltaX);
+//                    System.out.println("deltaY = " + deltaY);
+
+                    if ((e.getModifiersEx() & CTRL_DOWN_MASK) == CTRL_DOWN_MASK) {
+                    colliderPanel.updateZoom(e.getWheelRotation());
+                    zoomLabel.setText((int) (colliderPanel.getZoom() * 100) + "%");
+                } else {
+                    super.processMouseWheelEvent(e);
+                }
+            }
+
+            @Override
+            public String toString() {
+                return "ScrollPane(colliderPanel)";
+            }
+        };
 
         scrollPane.getVerticalScrollBar().setUnitIncrement(30);
         scrollPane.getHorizontalScrollBar().setUnitIncrement(30);
@@ -55,7 +79,7 @@ public class MultigridFrame extends JFrame {
 
         toolBar.add(new JLabel("Radius "));
 
-        SpinnerNumberModel radiusModel = new SpinnerNumberModel(multigrid.getRadius(), 1, 10, 1);
+        SpinnerNumberModel radiusModel = new SpinnerNumberModel(multigrid.getGridRadius(), 1, 10, 1);
         JSpinner radiusSpinner = new JSpinner(radiusModel);
         radiusSpinner.setMaximumSize(radiusSpinner.getPreferredSize());
         toolBar.add(radiusSpinner);
@@ -112,6 +136,9 @@ public class MultigridFrame extends JFrame {
         }
 
         public void updateZoom(int direction) {
+            if (zoom <= 1 && direction == 1) {
+                return;
+            }
             zoom += (-.1 * direction);
             JViewport viewport = (JViewport) getParent();
             int viewWidth = (int) (viewport.getWidth() * zoom);
@@ -145,7 +172,6 @@ public class MultigridFrame extends JFrame {
             newTransform.concatenate(getTransform());
             g2.setTransform(newTransform);
 
-//            drawAxis(g2);
 //            debug(g2);
 
             g2.setStroke(new BasicStroke((float) .05, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
@@ -156,6 +182,7 @@ public class MultigridFrame extends JFrame {
             g2.setColor(Color.RED);
 
             drawTiles(g2);
+            drawAxis(g2);
 
             g2.dispose();
         }
@@ -164,18 +191,28 @@ public class MultigridFrame extends JFrame {
             g2.setColor(Color.BLUE);
 
             List<GridTile> tileList = multigrid.getTileList();
+
             for (int i = 0; i < tileList.size(); i++) {
                 GridTile tile = tileList.get(i);
                 Path2D.Double path = new Path2D.Double();
                 List<GridPoint> vertextList = tile.getVertexList();
 
-                path.moveTo(vertextList.get(0).x(), vertextList.get(0).y());
+                path.moveTo(vertextList.getFirst().x(), vertextList.getFirst().y());
                 for (int j = 1; j < vertextList.size(); j++) {
                     GridPoint dual = vertextList.get(j);
                     path.lineTo(dual.x(), dual.y());
                 }
                 path.closePath();
                 g2.draw(path);
+
+                if(tile.getOrientation() != null) {
+
+                    Graphics2D temp = (Graphics2D) g2.create();
+                    temp.setColor(Color.RED);
+                    temp.clip(path);
+                    fillCircle(temp, tile.getOrientation().x(), tile.getOrientation().y(), .3);
+                    temp.dispose();
+                }
 
                /* GridPoint intersection = tile.getIntersection();
                 Set<GridLine> lineSet = multigrid.getIntersectedLineSet(intersection);
@@ -190,7 +227,7 @@ public class MultigridFrame extends JFrame {
         }
 
         private void drawAxis(Graphics2D g2) {
-            g2.setColor(Color.BLUE);
+            g2.setColor(Color.BLACK);
             fillCircle(g2, 0, 0, .05);
             g2.setStroke(new BasicStroke((float) .05));
             drawLine(g2, new GridLine(0, 0));
@@ -232,7 +269,7 @@ public class MultigridFrame extends JFrame {
             int viewWidth = (int) (viewport.getWidth() * zoom);
             int viewHeight = (int) (viewport.getHeight() * zoom);
 
-            double scale = (double) Math.min(viewWidth, viewHeight) / (15 * multigrid.getRadius());
+            double scale = (double) Math.min(viewWidth, viewHeight) / (2 * multigrid.getTilingRadius());
             scale *= zoom;
             transform.scale(scale, scale);
         }
