@@ -17,7 +17,7 @@ public class MultigridFrame extends JFrame {
 
     private final ColliderPanel colliderPanel = new ColliderPanel();
     private final JToolBar toolBar = new JToolBar();
-    private Multigrid multigrid = new Multigrid(5, 1, 0);
+    private Multigrid multigrid = new Multigrid(5, 3, 0.43);
     private JLabel zoomLabel = new JLabel("100%");
 
     public MultigridFrame() {
@@ -182,7 +182,7 @@ public class MultigridFrame extends JFrame {
             g2.setColor(Color.RED);
 
             drawTiles(g2);
-            drawAxis(g2);
+//            drawAxis(g2);
 
             g2.dispose();
         }

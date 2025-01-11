@@ -173,15 +173,10 @@ public class Multigrid {
         GridPoint p3 = pointList.get(2);
         GridPoint p4 = pointList.get(3);
 
-        double side1 = p1.getDistance(p2);
-        double side2 = p2.getDistance(p3);
-        double side3 = p3.getDistance(p4);
-        double side4 = p4.getDistance(p1);
-
-        return Multigrid.equalWithEpsilon(side1, side2) &&
-                Multigrid.equalWithEpsilon(side2, side3) &&
-                Multigrid.equalWithEpsilon(side3, side4) &&
-                Multigrid.equalWithEpsilon(side4, side1);
+        // check that the diagonals are perpendicular
+        double r = (p3.x() - p1.x()) * (p4.x() - p2.x()) + (p3.y() - p1.y()) * (p4.y() - p2.y());
+        // need a little bigger epsilon here, dividing by 10 does the trick
+        return equalWithEpsilon(r/10.0, 0);
     }
 
     public List<GridTile> getTileList() {
@@ -258,8 +253,13 @@ public class Multigrid {
     private static final double EPSILON = 1e-10;
 
     static boolean equalWithEpsilon(double a, double b) {
-        return (Math.abs(a - b) < EPSILON);
+        return equalWithEpsilon(a, b, EPSILON);
     }
+
+    static boolean equalWithEpsilon(double a, double b, double epsilon) {
+        return (Math.abs(a - b) <= epsilon);
+    }
+
 
     static double roundWithEpsilon(double d) {
         return Math.round(d * (1.0 / EPSILON)) / (1.0 / EPSILON);
@@ -385,33 +385,12 @@ class GridTile {
             b = p4;
         }
 
-        double dx = b.x() - a.x();
-        double dy = b.y() - a.y();
-        double theta = Math.atan2(dy, dx);
-
-        if (theta < 0) {
-            theta += 2 * Math.PI;
-//            System.out.println("Negative");
-        } else {
-//            System.out.println("Positive");
-        }
-
-        if (theta >= Math.PI) {
-            orientation = b;
-        } else {
+        if (Math.abs(a.x()) < Math.abs(b.x()) ||
+                (Math.abs(a.x()) == Math.abs(b.x()) && Math.abs(a.y()) < Math.abs(b.y()))) {
             orientation = a;
+        }  else {
+            orientation = b;
         }
-
-        if (Multigrid.roundWithEpsilon(intersectionPoint.y()) >= 0 ) {
-            orientation = orientation == a? b:a;
-        }
-
-        if (Multigrid.roundWithEpsilon(intersectionPoint.y()) == 0 && intersectionPoint.x() < 0) {
-            orientation = orientation == a? b:a;
-        }
-//        System.out.println("theta = " + theta);
-
-//        System.out.println("Multigrid.roundWithEpsilon(intersectionPoint.y()) = " + Multigrid.roundWithEpsilon(intersectionPoint.y()));
 
         double signedArea =
                 (p1.x() * p2.y() + p2.x() * p3.y() + p3.x() * p4.y() + p4.x() * p1.y())
