@@ -5,6 +5,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.geom.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -26,18 +27,9 @@ public class MultigridFrame extends JFrame {
 //        setExtendedState(JFrame.MAXIMIZED_BOTH);
 
         final JScrollPane scrollPane = new JScrollPane(colliderPanel) {
-                @Override
-                protected void processMouseWheelEvent(MouseWheelEvent e) {
-
-//                    Point convertedPoint = SwingUtilities.convertPoint(e.getComponent(), e.getPoint(), colliderPanel);
-//                    System.out.println("convertedPoint = " + convertedPoint);
-//                    int deltaX = colliderPanel.getWidth()/2 - e.getPoint().x;
-//                    int deltaY = colliderPanel.getHeight()/2 - e.getPoint().y;
-
-//                    System.out.println("deltaX = " + deltaX);
-//                    System.out.println("deltaY = " + deltaY);
-
-                    if ((e.getModifiersEx() & CTRL_DOWN_MASK) == CTRL_DOWN_MASK) {
+            @Override
+            protected void processMouseWheelEvent(MouseWheelEvent e) {
+                if ((e.getModifiersEx() & CTRL_DOWN_MASK) == CTRL_DOWN_MASK) {
                     colliderPanel.updateZoom(e.getWheelRotation());
                     zoomLabel.setText((int) (colliderPanel.getZoom() * 100) + "%");
                 } else {
@@ -56,7 +48,7 @@ public class MultigridFrame extends JFrame {
         add(scrollPane);
 
         toolBar.add(new JLabel("Symmetry "));
-        SpinnerNumberModel symmetryModel = new SpinnerNumberModel(multigrid.getSymmetry(), 1, 10, 1);
+        SpinnerNumberModel symmetryModel = new SpinnerNumberModel(multigrid.getSymmetry(), 3, 15, 1);
         final JSpinner symmetrySpinner = new JSpinner(symmetryModel);
         symmetrySpinner.setMaximumSize(symmetrySpinner.getPreferredSize());
         toolBar.add(symmetrySpinner);
@@ -64,7 +56,7 @@ public class MultigridFrame extends JFrame {
 
         toolBar.add(new JLabel("Offset "));
 
-        SpinnerNumberModel offsetModel = new SpinnerNumberModel(multigrid.getOffset(), 0, 2, 0.01);
+        SpinnerNumberModel offsetModel = new SpinnerNumberModel(multigrid.getOffset(), 0, 3, 0.01);
         JSpinner offsetSpinner = new JSpinner(offsetModel);
         offsetSpinner.setEditor(new JSpinner.NumberEditor(offsetSpinner, "#.##"));
         Dimension preferredSize = offsetSpinner.getPreferredSize();
@@ -126,6 +118,7 @@ public class MultigridFrame extends JFrame {
     private class ColliderPanel extends JPanel {
         private final AffineTransform transform = new AffineTransform();
         private double zoom = 1;
+        private final List<Color> colorList = new ArrayList<>();
 
         public ColliderPanel() {
             ToolTipManager.sharedInstance().registerComponent(this);
@@ -148,11 +141,11 @@ public class MultigridFrame extends JFrame {
 
             Point viewPosition = viewport.getViewPosition();
 
-            int newViewX = viewPosition.x + (viewWidth - preferredSize.width)/2;
-            int newViewY = viewPosition.y + (viewHeight - preferredSize.height)/2;
+            int newViewX = viewPosition.x + (viewWidth - preferredSize.width) / 2;
+            int newViewY = viewPosition.y + (viewHeight - preferredSize.height) / 2;
 
-            setPreferredSize(new Dimension(viewWidth ,viewHeight));
-            viewport.setViewPosition(new Point(newViewX,newViewY));
+            setPreferredSize(new Dimension(viewWidth, viewHeight));
+            viewport.setViewPosition(new Point(newViewX, newViewY));
             revalidate();
             repaint();
         }
@@ -187,9 +180,25 @@ public class MultigridFrame extends JFrame {
             g2.dispose();
         }
 
-        private void drawTiles(Graphics2D g2) {
-            g2.setColor(Color.BLUE);
+        public List<Color> getColorList() {
+            if (colorList.size() != multigrid.getTileAreaList().size()) {
+                colorList.clear();
+                // Distribute the hue values evenly around the color wheel
+                int colorListSize = multigrid.getTileAreaList().size();
+                for (int i = 0; i < colorListSize; i++) {
+                    float hue = (float) i / colorListSize;     // 0.0 to <1.0
+                    float saturation = 0.8f;      // set between 0.0 and 1.0
+                    float brightness = 0.9f;      // set between 0.0 and 1.0
 
+                    // Create the Color using HSB -> RGB conversion
+                    Color color = Color.getHSBColor(hue, saturation, brightness);
+                    colorList.add(color);
+                }
+            }
+            return colorList;
+        }
+
+        private void drawTiles(Graphics2D g2) {
             List<GridTile> tileList = multigrid.getTileList();
 
             for (int i = 0; i < tileList.size(); i++) {
@@ -203,27 +212,50 @@ public class MultigridFrame extends JFrame {
                     path.lineTo(dual.x(), dual.y());
                 }
                 path.closePath();
+
+                int colorIndex = multigrid.getTileAreaList().indexOf(tile.getArea());
+                g2.setColor(getColorList().get(colorIndex));
+                g2.fill(path);
+                g2.setColor(Color.BLACK);
                 g2.draw(path);
-
-                if(tile.getOrientation() != null) {
-
-                    Graphics2D temp = (Graphics2D) g2.create();
-                    temp.setColor(Color.RED);
-                    temp.clip(path);
-                    fillCircle(temp, tile.getOrientation().x(), tile.getOrientation().y(), .3);
-                    temp.dispose();
-                }
-
-               /* GridPoint intersection = tile.getIntersection();
-                Set<GridLine> lineSet = multigrid.getIntersectedLineSet(intersection);
-
-                Graphics2D temp = (Graphics2D) g2.create();
-                temp.setColor(Color.MAGENTA);
-                temp.translate(-intersection.x(), -intersection.y());
-                temp.draw(path);
-                temp.dispose();
-                drawPoint(g2, intersection);*/
             }
+        }
+
+        private void fillTriangle(Graphics2D g2, GridPoint a, GridPoint b, double t) {
+            double sideLength = .3;
+
+            double mx = a.x() + t * (b.x() - a.x());
+            double my = a.y() + t * (b.y() - a.y());
+
+            double dx = b.x() - a.x();
+            double dy = b.y() - a.y();
+            double l = Math.sqrt(dx * dx + dy * dy);
+
+            if (l == 0) {
+                throw new IllegalArgumentException("Points are too close");
+            }
+
+            double dHatX = dx / l;
+            double dHatY = dy / l;
+
+            // 4. Unit normal vector (nHatX, nHatY) - perpendicular to (dx, dy)
+            double nHatX = -dy / l;
+            double nHatY = dx / l;
+
+            // 5. Triangle dimensions
+            double halfBase = sideLength / 2.0;
+            double h = Math.sqrt(sideLength * sideLength - halfBase * halfBase);
+
+            Path2D.Double triangle = new Path2D.Double();
+            triangle.moveTo(mx - halfBase * nHatX,
+                    my - halfBase * nHatY);
+
+            triangle.lineTo(mx + halfBase * nHatX,
+                    my + halfBase * nHatY);
+            triangle.lineTo(mx + h * dHatX,
+                    my + h * dHatY);
+            triangle.closePath();
+            g2.fill(triangle);
         }
 
         private void drawAxis(Graphics2D g2) {
@@ -269,9 +301,10 @@ public class MultigridFrame extends JFrame {
             int viewWidth = (int) (viewport.getWidth() * zoom);
             int viewHeight = (int) (viewport.getHeight() * zoom);
 
-            double scale = (double) Math.min(viewWidth, viewHeight) / (2 * multigrid.getTilingRadius());
+            double scale = (double) Math.min(viewWidth, viewHeight) / (2 * (multigrid.getTilingRadius() + 1));
             scale *= zoom;
             transform.scale(scale, scale);
+            transform.rotate(-Math.PI / (2 * multigrid.getSymmetry()));
         }
 
         public AffineTransform getTransform() {
@@ -305,6 +338,10 @@ public class MultigridFrame extends JFrame {
 
         private void fillCircle(Graphics2D g2, double x, double y, double radius) {
             g2.fill(new Ellipse2D.Double(x - radius, y - radius, 2 * radius, 2 * radius));
+        }
+
+        private void drawCircle(Graphics2D g2, double x, double y, double radius) {
+            g2.draw(new Ellipse2D.Double(x - radius, y - radius, 2 * radius, 2 * radius));
         }
 
         private void drawLines(Graphics2D g2) {
