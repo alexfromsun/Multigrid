@@ -26,7 +26,6 @@ public class MultigridFrame extends JFrame {
 
     public MultigridFrame() {
         setTitle("Collider frame");
-        setMinimumSize(new Dimension(800, 600));
         setExtendedState(JFrame.MAXIMIZED_BOTH);
 
         final JScrollPane scrollPane = new JScrollPane(colliderPanel) {
@@ -142,7 +141,11 @@ public class MultigridFrame extends JFrame {
         add(statusBar, BorderLayout.PAGE_END);
         updateStatusBar();
 
-        SwingUtilities.invokeLater(() -> offsetSpinner.requestFocus());
+        SwingUtilities.invokeLater(() -> {
+            setMinimumSize(new Dimension(800, 600));
+            offsetSpinner.requestFocus();
+        });
+
     }
 
     private void updateStatusBar() {
