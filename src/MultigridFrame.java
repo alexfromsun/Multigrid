@@ -1,6 +1,8 @@
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
@@ -18,8 +20,9 @@ public class MultigridFrame extends JFrame {
 
     private final ColliderPanel colliderPanel = new ColliderPanel();
     private final JToolBar toolBar = new JToolBar();
-    private Multigrid multigrid = new Multigrid(5, 3, 0.43);
+    private Multigrid multigrid = new Multigrid(5, 3, 0.43, 0);
     private JLabel zoomLabel = new JLabel("100%");
+    private JLabel statusBar = new JLabel();
 
     public MultigridFrame() {
         setTitle("Collider frame");
@@ -54,21 +57,6 @@ public class MultigridFrame extends JFrame {
         toolBar.add(symmetrySpinner);
         toolBar.addSeparator();
 
-        toolBar.add(new JLabel("Offset "));
-
-        SpinnerNumberModel offsetModel = new SpinnerNumberModel(multigrid.getOffset(), 0, 3, 0.01);
-        JSpinner offsetSpinner = new JSpinner(offsetModel);
-        offsetSpinner.setEditor(new JSpinner.NumberEditor(offsetSpinner, "#.##"));
-        Dimension preferredSize = offsetSpinner.getPreferredSize();
-        preferredSize.width += 25;
-        offsetSpinner.setMaximumSize(preferredSize);
-
-        toolBar.add(offsetSpinner);
-        toolBar.addSeparator();
-
-        JFormattedTextField tf = ((JSpinner.DefaultEditor) offsetSpinner.getEditor()).getTextField();
-        tf.setColumns(3);
-
         toolBar.add(new JLabel("Radius "));
 
         SpinnerNumberModel radiusModel = new SpinnerNumberModel(multigrid.getGridRadius(), 1, 10, 1);
@@ -77,17 +65,57 @@ public class MultigridFrame extends JFrame {
         toolBar.add(radiusSpinner);
         toolBar.addSeparator();
 
-        ChangeListener changeListener = _ -> {
-            int symmetry = (int) symmetrySpinner.getValue();
-            int radius = (int) radiusSpinner.getValue();
-            double offset = (double) offsetSpinner.getValue();
-            multigrid = new Multigrid(symmetry, radius, offset);
-            colliderPanel.revalidate();
-            colliderPanel.repaint();
+        toolBar.add(new JLabel("Offset "));
+
+        SpinnerNumberModel offsetModel = new SpinnerNumberModel(multigrid.getOffset(), 0, 3, 0.01);
+        JSpinner offsetSpinner = new JSpinner(offsetModel);
+        offsetSpinner.setEditor(new JSpinner.NumberEditor(offsetSpinner, "#.##"));
+        JFormattedTextField tf = ((JSpinner.DefaultEditor) offsetSpinner.getEditor()).getTextField();
+        tf.setColumns(3);
+
+        offsetSpinner.setMaximumSize(offsetSpinner.getPreferredSize());
+
+        toolBar.add(offsetSpinner);
+        toolBar.addSeparator();
+
+        JButton insetButton = new JButton("Inset ");
+        insetButton.setToolTipText("Set inset to 0");
+        insetButton.setFocusable(false);
+        toolBar.add(insetButton);
+
+        SpinnerNumberModel insetModel = new SpinnerNumberModel(multigrid.getGridInset(), 0, .99, 0.02);
+        JSpinner insetSpinner = new JSpinner(insetModel);
+        insetSpinner.setEditor(new JSpinner.NumberEditor(insetSpinner, "#.##"));
+
+        JFormattedTextField tfInset = ((JSpinner.DefaultEditor) insetSpinner.getEditor()).getTextField();
+        tfInset.setColumns(3);
+        insetSpinner.setMaximumSize(insetSpinner.getPreferredSize());
+
+        insetButton.addActionListener(e -> {
+            insetSpinner.setValue(0.0);
+        });
+
+        toolBar.add(insetSpinner);
+        toolBar.addSeparator();
+
+        ChangeListener changeListener = new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                int symmetry = (int) symmetrySpinner.getValue();
+                int radius = (int) radiusSpinner.getValue();
+                double offset = (double) offsetSpinner.getValue();
+                double gridInset = (double) insetSpinner.getValue();
+                multigrid = new Multigrid(symmetry, radius, offset, gridInset);
+                updateStatusBar();
+                colliderPanel.revalidate();
+                colliderPanel.repaint();
+            }
         };
+
         symmetrySpinner.addChangeListener(changeListener);
         radiusSpinner.addChangeListener(changeListener);
         offsetSpinner.addChangeListener(changeListener);
+        insetSpinner.addChangeListener(changeListener);
 
         toolBar.add(Box.createHorizontalGlue());
 
@@ -110,9 +138,15 @@ public class MultigridFrame extends JFrame {
         minusButton.addActionListener(zoomAction);
         plusButton.addActionListener(zoomAction);
 
-
         add(toolBar, BorderLayout.PAGE_START);
+        add(statusBar, BorderLayout.PAGE_END);
+        updateStatusBar();
+
         SwingUtilities.invokeLater(() -> offsetSpinner.requestFocus());
+    }
+
+    private void updateStatusBar() {
+        statusBar.setText("Number of tiles - " + multigrid.getTileList().size());
     }
 
     private class ColliderPanel extends JPanel {
@@ -121,7 +155,7 @@ public class MultigridFrame extends JFrame {
         private final List<Color> colorList = new ArrayList<>();
 
         public ColliderPanel() {
-            ToolTipManager.sharedInstance().registerComponent(this);
+//            ToolTipManager.sharedInstance().registerComponent(this);
         }
 
         public double getZoom() {
@@ -174,7 +208,7 @@ public class MultigridFrame extends JFrame {
 
             g2.setColor(Color.RED);
 
-            drawTiles(g2);
+            drawTiles(g2, true);
 //            drawAxis(g2);
 
             g2.dispose();
@@ -198,7 +232,7 @@ public class MultigridFrame extends JFrame {
             return colorList;
         }
 
-        private void drawTiles(Graphics2D g2) {
+        private void drawTiles(Graphics2D g2, boolean isFillTile) {
             List<GridTile> tileList = multigrid.getTileList();
 
             for (int i = 0; i < tileList.size(); i++) {
@@ -212,50 +246,14 @@ public class MultigridFrame extends JFrame {
                     path.lineTo(dual.x(), dual.y());
                 }
                 path.closePath();
-
-                int colorIndex = multigrid.getTileAreaList().indexOf(tile.getArea());
-                g2.setColor(getColorList().get(colorIndex));
-                g2.fill(path);
+                if (isFillTile) {
+                    int colorIndex = multigrid.getTileAreaList().indexOf(tile.getArea());
+                    g2.setColor(getColorList().get(colorIndex));
+                    g2.fill(path);
+                }
                 g2.setColor(Color.BLACK);
                 g2.draw(path);
             }
-        }
-
-        private void fillTriangle(Graphics2D g2, GridPoint a, GridPoint b, double t) {
-            double sideLength = .3;
-
-            double mx = a.x() + t * (b.x() - a.x());
-            double my = a.y() + t * (b.y() - a.y());
-
-            double dx = b.x() - a.x();
-            double dy = b.y() - a.y();
-            double l = Math.sqrt(dx * dx + dy * dy);
-
-            if (l == 0) {
-                throw new IllegalArgumentException("Points are too close");
-            }
-
-            double dHatX = dx / l;
-            double dHatY = dy / l;
-
-            // 4. Unit normal vector (nHatX, nHatY) - perpendicular to (dx, dy)
-            double nHatX = -dy / l;
-            double nHatY = dx / l;
-
-            // 5. Triangle dimensions
-            double halfBase = sideLength / 2.0;
-            double h = Math.sqrt(sideLength * sideLength - halfBase * halfBase);
-
-            Path2D.Double triangle = new Path2D.Double();
-            triangle.moveTo(mx - halfBase * nHatX,
-                    my - halfBase * nHatY);
-
-            triangle.lineTo(mx + halfBase * nHatX,
-                    my + halfBase * nHatY);
-            triangle.lineTo(mx + h * dHatX,
-                    my + h * dHatY);
-            triangle.closePath();
-            g2.fill(triangle);
         }
 
         private void drawAxis(Graphics2D g2) {

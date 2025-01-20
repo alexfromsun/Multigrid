@@ -19,15 +19,19 @@ public class Multigrid {
     private List<Double> tileAreaList;
 
     private double tilingRadius;
+    private double gridInset;
 
-    public Multigrid(int symmetry, int gridRadius, double offset) {
+    public Multigrid(int symmetry, int gridRadius, double offset, double gridInset) {
         this.gridRadius = gridRadius;
         this.symmetry = symmetry;
         this.offset = offset;
+        this.gridInset = gridInset;
+//        double[] offsetArray = {0,0.61803,0.23607,0.85410,0.47214};
+
         double multiplier = 2 * Math.PI / symmetry;
         for (int i = 0; i < symmetry; i++) {
             double angle = 2 * i * Math.PI / symmetry;
-            Grid grid = new Grid(angle, offset, gridRadius);
+            Grid grid = new Grid(angle, offset, gridRadius, gridInset);
             gridList.add(grid);
             lineList.addAll(grid.getLineList());
 
@@ -82,7 +86,7 @@ public class Multigrid {
             }
         }
 
-// todo: does sorting needed at all?
+        // todo: does sorting needed at all?
         sortIntersectionPoints();
 
         calculateTiles();
@@ -202,9 +206,17 @@ public class Multigrid {
         GridPoint p3 = pointList.get(2);
         GridPoint p4 = pointList.get(3);
 
-        // check that the diagonals are perpendicular
-        double r = (p3.x() - p1.x()) * (p4.x() - p2.x()) + (p3.y() - p1.y()) * (p4.y() - p2.y());
-        return equalWithBigEpsilon(r, 0);
+        double side1 = p1.getDistance(p2);
+        double side2 = p2.getDistance(p3);
+        double side3 = p3.getDistance(p4);
+        double side4 = p4.getDistance(p1);
+
+        return equalWithBigEpsilon(side1, 1) && equalWithBigEpsilon(side2, 1)
+                && equalWithBigEpsilon(side3, 1) && equalWithBigEpsilon(side4, 1);
+    }
+
+    public double getGridInset() {
+        return gridInset;
     }
 
     public List<GridTile> getTileList() {
@@ -318,7 +330,7 @@ class Grid {
     private final GridLine leftBorder;
     private final GridLine rightBorder;
 
-    public Grid(double angle, double offset, int gridRadius) {
+    public Grid(double angle, double offset, int gridRadius, double inset) {
         this.angle = angle;
         this.offset = offset;
         this.radius = gridRadius;
@@ -328,8 +340,8 @@ class Grid {
             lineList.add(line);
         }
 
-        leftBorder = new GridLine(angle, lineList.getFirst().getOffset() - 1);
-        rightBorder = new GridLine(angle, lineList.getLast().getOffset() + 1);
+        leftBorder = new GridLine(angle, lineList.getFirst().getOffset() - (1 - inset));
+        rightBorder = new GridLine(angle, lineList.getLast().getOffset() + (1 - inset));
     }
 
     public boolean contains(GridPoint point) {
@@ -452,7 +464,7 @@ class GridTile {
     private final List<GridPoint> vertexList;
     private List<GridPoint> offsetList;
     private List<GridPoint> medianList;
-    private double area;
+    private final double area;
 
     public GridTile(GridPoint intersectionPoint, Set<GridLine> lineSet, List<GridPoint> vertexList) {
         this.vertexList = vertexList;
@@ -473,6 +485,7 @@ class GridTile {
         area = Multigrid.roundWithBigEpsilon(.5 * d1 * d2);
     }
 
+    // 0.587785 0.951057
     public double getArea() {
         return area;
     }
