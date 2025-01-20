@@ -20,14 +20,14 @@ public class MultigridFrame extends JFrame {
 
     private final ColliderPanel colliderPanel = new ColliderPanel();
     private final JToolBar toolBar = new JToolBar();
-    private Multigrid multigrid = new Multigrid(5, 3, 0.43, 0);
+    private Multigrid multigrid = new Multigrid(5, 5, 0.1, 0);
     private JLabel zoomLabel = new JLabel("100%");
     private JLabel statusBar = new JLabel();
 
     public MultigridFrame() {
         setTitle("Collider frame");
         setMinimumSize(new Dimension(800, 600));
-//        setExtendedState(JFrame.MAXIMIZED_BOTH);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
 
         final JScrollPane scrollPane = new JScrollPane(colliderPanel) {
             @Override
