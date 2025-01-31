@@ -26,12 +26,14 @@ public class Multigrid {
         this.symmetry = symmetry;
         this.offset = offset;
         this.gridInset = gridInset;
-//        double[] offsetArray = {0,0.61803,0.23607,0.85410,0.47214};
+//        double[] offsetArray = {0, -.2, .2, -.2, .2};
+        double[] offsetArray = new double[symmetry];
+        Arrays.fill(offsetArray, offset);
 
         double multiplier = 2 * Math.PI / symmetry;
         for (int i = 0; i < symmetry; i++) {
             double angle = 2 * i * Math.PI / symmetry;
-            Grid grid = new Grid(angle, offset, gridRadius, gridInset);
+            Grid grid = new Grid(angle, offsetArray[i], gridRadius, gridInset);
             gridList.add(grid);
             lineList.addAll(grid.getLineList());
 
@@ -115,22 +117,21 @@ public class Multigrid {
 
             List<GridPoint> offsetList = new ArrayList<>();
             for (Double angle : angles) {
-                double x = intersection.x() + BIG_EPSILON * -Math.sin(angle);
-                double y = intersection.y() + BIG_EPSILON * Math.cos(angle);
+                double x = intersection.x() + SMALL_EPSILON * -Math.sin(angle);
+                double y = intersection.y() + SMALL_EPSILON * Math.cos(angle);
                 GridPoint offset = new GridPoint(x, y);
                 offsetList.add(offset);
             }
-
             List<GridPoint> medianList = new ArrayList<>();
-            int iMax = offsetList.size();
+            int offsetListSize = offsetList.size();
 
-            for (int i = 0; i < iMax; i++) {
+            for (int i = 0; i < offsetListSize; i++) {
                 GridPoint offset = offsetList.get(i);
                 double x0 = offset.x();
                 double y0 = offset.y();
 
-                double x1 = offsetList.get((i + 1) % iMax).x();
-                double y1 = offsetList.get((i + 1) % iMax).y();
+                double x1 = offsetList.get((i + 1) % offsetListSize).x();
+                double y1 = offsetList.get((i + 1) % offsetListSize).y();
 
                 double xm = (x0 + x1) / 2;
                 double ym = (y0 + y1) / 2;
@@ -140,17 +141,28 @@ public class Multigrid {
             }
 
             List<GridPoint> dualList = new ArrayList<>();
+            List<Integer> dualIndexList = new ArrayList<>();
             double meanX = 0, meanY = 0;
+
+//          x=-0.24721359549995792, y=2.918393927182259E-17
+            if (intersection.x() == -0.24721359549995792 && intersection.y() == 2.918393927182259E-17) {
+//                System.out.println();
+            }
 
             for (GridPoint median : medianList) {
                 double xd = 0, yd = 0;
+
+                double vertexIndex = 0;
+
 
                 for (int i = 0; i < this.symmetry; i++) {
                     double ci = cosTable.get(i);
                     double si = sinTable.get(i);
 
-                    double k = Math.floor(median.x() * ci + median.y() * si - gridList.get(i).getOffset());
+                    double temp = median.x() * ci + median.y() * si - gridList.get(i).getOffset();
+                    double k = Math.floor(temp);
 
+                    vertexIndex += k;
                     xd += k * ci;
                     yd += k * si;
                 }
@@ -158,6 +170,9 @@ public class Multigrid {
                         new GridPoint(roundWithSmallEpsilon(xd), roundWithSmallEpsilon(yd));
                 dualList.add(dual);
 
+                int sum = (int) vertexIndex % this.symmetry;
+//                dualIndexList.add(sum == 0 ? 2 : -sum);
+                dualIndexList.add(Math.abs(sum));
                 meanX += xd;
                 meanY += yd;
             }
@@ -166,14 +181,16 @@ public class Multigrid {
 
             if (isRhombus(dualList)) {
 
-                Set<GridLine> gridLines = intersectionMap.get(intersection);
-                GridTile tile = new GridTile(intersection, gridLines, dualList);
-                tile.setOffsetList(offsetList);
-                tile.setMedianList(medianList);
-
+                GridTile tile = new GridTile(intersection, dualList);
                 tileList.add(tile);
                 tileAreaSet.add(tile.getArea());
 
+                tile.setVertexIndices(dualIndexList);
+
+//                if(tile.getArea() == 0.951057)
+                {
+//                    System.out.println("dualIndexList = " + dualIndexList);
+                }
                 for (GridPoint point : dualList) {
                     if (point.x() > tilingRadius) {
                         tilingRadius = point.x();
@@ -187,6 +204,8 @@ public class Multigrid {
         tileList = Collections.unmodifiableList(tileList);
         tileAreaList = Collections.unmodifiableList(new ArrayList<>(tileAreaSet));
     }
+
+    boolean flag;
 
     public boolean contains(GridPoint point) {
         for (Grid grid : gridList) {
@@ -460,29 +479,57 @@ record GridPoint(double x, double y) {
 
 class GridTile {
     private final GridPoint intersection;
-    private final Set<GridLine> lineSet;
     private final List<GridPoint> vertexList;
-    private List<GridPoint> offsetList;
-    private List<GridPoint> medianList;
     private final double area;
+    private final Map<GridPoint, Integer> vertexIndexMap = new HashMap<>();
 
-    public GridTile(GridPoint intersectionPoint, Set<GridLine> lineSet, List<GridPoint> vertexList) {
+    public GridTile(GridPoint intersectionPoint, List<GridPoint> vertexList) {
         this.vertexList = vertexList;
         this.intersection = intersectionPoint;
-        this.lineSet = lineSet;
 
         GridPoint p1 = vertexList.get(0);
         GridPoint p2 = vertexList.get(1);
         GridPoint p3 = vertexList.get(2);
         GridPoint p4 = vertexList.get(3);
 
-        Iterator<GridLine> iterator = lineSet.iterator();
-        GridLine line1 = iterator.next();
-        GridLine line2 = iterator.next();
-
         double d1 = p1.getDistance(p3);
         double d2 = p2.getDistance(p4);
         area = Multigrid.roundWithBigEpsilon(.5 * d1 * d2);
+    }
+
+    void setVertexIndices(List<Integer> indices) {
+        if (indices.size() != vertexList.size()) {
+            throw new RuntimeException("Index count does not match");
+        }
+        GridPoint mainVertex = null;
+
+        List<Integer> noDuplicates = new ArrayList<>();
+        for (Integer index : indices) {
+            int i = noDuplicates.indexOf(index);
+            if (i == -1) {
+                noDuplicates.add(index);
+            } else {
+                noDuplicates.remove(i);
+            }
+        }
+
+        if (noDuplicates.size() != 2) {
+            throw new RuntimeException("Expected two unique indexes");
+        }
+
+        int min = Collections.min(noDuplicates);
+        int max = Collections.max(noDuplicates);
+
+        mainVertex = vertexList.get(indices.indexOf(min));
+
+        //.4 .8
+        if (max == 3) {
+            mainVertex = vertexList.get(indices.indexOf(max));
+        }
+
+        while (mainVertex != vertexList.get(0)) {
+            vertexList.add(vertexList.remove(0));
+        }
     }
 
     // 0.587785 0.951057
@@ -496,21 +543,5 @@ class GridTile {
 
     public List<GridPoint> getVertexList() {
         return vertexList;
-    }
-
-    public List<GridPoint> getOffsetList() {
-        return offsetList;
-    }
-
-    public void setOffsetList(List<GridPoint> offsetList) {
-        this.offsetList = Collections.unmodifiableList(offsetList);
-    }
-
-    public List<GridPoint> getMedianList() {
-        return medianList;
-    }
-
-    public void setMedianList(List<GridPoint> medianList) {
-        this.medianList = Collections.unmodifiableList(medianList);
     }
 }

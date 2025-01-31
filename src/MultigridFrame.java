@@ -20,8 +20,8 @@ public class MultigridFrame extends JFrame {
 
     private final ColliderPanel colliderPanel = new ColliderPanel();
     private final JToolBar toolBar = new JToolBar();
-    private Multigrid multigrid = new Multigrid(5, 5, 0.1, 0);
-    private JLabel zoomLabel = new JLabel("100%");
+    private Multigrid multigrid = new Multigrid(5, 2, .2, 0);
+    private JButton zoomButton = new JButton("100%");
     private JLabel statusBar = new JLabel();
 
     public MultigridFrame() {
@@ -33,7 +33,7 @@ public class MultigridFrame extends JFrame {
             protected void processMouseWheelEvent(MouseWheelEvent e) {
                 if ((e.getModifiersEx() & CTRL_DOWN_MASK) == CTRL_DOWN_MASK) {
                     colliderPanel.updateZoom(e.getWheelRotation());
-                    zoomLabel.setText((int) (colliderPanel.getZoom() * 100) + "%");
+                    zoomButton.setText((int) (colliderPanel.getZoom() * 100) + "%");
                 } else {
                     super.processMouseWheelEvent(e);
                 }
@@ -58,7 +58,7 @@ public class MultigridFrame extends JFrame {
 
         toolBar.add(new JLabel("Radius "));
 
-        SpinnerNumberModel radiusModel = new SpinnerNumberModel(multigrid.getGridRadius(), 1, 10, 1);
+        SpinnerNumberModel radiusModel = new SpinnerNumberModel(multigrid.getGridRadius(), 0, 10, 1);
         JSpinner radiusSpinner = new JSpinner(radiusModel);
         radiusSpinner.setMaximumSize(radiusSpinner.getPreferredSize());
         toolBar.add(radiusSpinner);
@@ -66,7 +66,7 @@ public class MultigridFrame extends JFrame {
 
         toolBar.add(new JLabel("Offset "));
 
-        SpinnerNumberModel offsetModel = new SpinnerNumberModel(multigrid.getOffset(), 0, 3, 0.01);
+        SpinnerNumberModel offsetModel = new SpinnerNumberModel(multigrid.getOffset(), -3, 3, 0.01);
         JSpinner offsetSpinner = new JSpinner(offsetModel);
         offsetSpinner.setEditor(new JSpinner.NumberEditor(offsetSpinner, "#.##"));
         JFormattedTextField tf = ((JSpinner.DefaultEditor) offsetSpinner.getEditor()).getTextField();
@@ -118,7 +118,13 @@ public class MultigridFrame extends JFrame {
 
         toolBar.add(Box.createHorizontalGlue());
 
-        toolBar.add(zoomLabel);
+        toolBar.add(zoomButton);
+
+        // todo: fix the zoom button
+        zoomButton.addActionListener(e -> {
+            colliderPanel.setZoom(1);
+            zoomButton.setText((int) (colliderPanel.getZoom() * 100) + "%");
+        });
         toolBar.addSeparator();
         JButton plusButton = new JButton("+");
         plusButton.setToolTipText("Ctrl +");
@@ -131,7 +137,7 @@ public class MultigridFrame extends JFrame {
         ActionListener zoomAction = e -> {
             int direction = e.getSource() == plusButton ? -1 : 1;
             colliderPanel.updateZoom(direction);
-            zoomLabel.setText((int) (colliderPanel.getZoom() * 100) + "%");
+            zoomButton.setText((int) (colliderPanel.getZoom() * 100) + "%");
         };
 
         minusButton.addActionListener(zoomAction);
@@ -212,6 +218,7 @@ public class MultigridFrame extends JFrame {
             g2.setColor(Color.RED);
 
             drawTiles(g2, true);
+            drawArrows(g2);
 //            drawAxis(g2);
 
             g2.dispose();
@@ -250,13 +257,62 @@ public class MultigridFrame extends JFrame {
                 }
                 path.closePath();
                 if (isFillTile) {
-                    int colorIndex = multigrid.getTileAreaList().indexOf(tile.getArea());
-                    g2.setColor(getColorList().get(colorIndex));
-                    g2.fill(path);
+//                    int colorIndex = multigrid.getTileAreaList().indexOf(tile.getArea());
+//                    g2.setColor(getColorList().get(colorIndex));
+//                    g2.fill(path);
                 }
                 g2.setColor(Color.BLACK);
                 g2.draw(path);
             }
+        }
+
+        private void drawArrows(Graphics2D g2) {
+            List<GridTile> tileList = multigrid.getTileList();
+
+            for (int i = 0; i < tileList.size(); i++) {
+                GridTile tile = tileList.get(i);
+
+                Path2D.Double path = new Path2D.Double();
+                List<GridPoint> vertextList = tile.getVertexList();
+
+                path.moveTo(vertextList.getFirst().x(), vertextList.getFirst().y());
+                for (int j = 1; j < vertextList.size(); j++) {
+                    GridPoint dual = vertextList.get(j);
+                    path.lineTo(dual.x(), dual.y());
+                }
+                path.closePath();
+                g2.setColor(Color.BLACK);
+
+                Shape clip = g2.getClip();
+                g2.clip(path);
+
+                GridPoint a = vertextList.get(0);
+                GridPoint b = vertextList.get(1);
+                GridPoint c = vertextList.get(2);
+                GridPoint d = vertextList.get(3);
+
+                if (tile.getArea() == 0.951057) {
+                    drawDoubleArrow(g2, b, a);
+                    drawDoubleArrow(g2, d, a);
+                    drawArrow(g2, b, c);
+                    drawArrow(g2, d, c);
+                } else {
+                    drawDoubleArrow(g2, b, a);
+                    drawDoubleArrow(g2, d, a);
+                    drawArrow(g2, c, b);
+                    drawArrow(g2, c, d);
+                }
+                g2.setClip(clip);
+            }
+        }
+
+        private void drawArrow(Graphics2D g2, GridPoint p1, GridPoint p2) {
+            fillTriangle(g2, p1, p2, .5);
+        }
+
+        private void drawDoubleArrow(Graphics2D g2, GridPoint p1, GridPoint p2) {
+            fillTriangle(g2, p1, p2, .5);
+            fillTriangle(g2, p1, p2, .8);
         }
 
         private void drawAxis(Graphics2D g2) {
@@ -315,13 +371,13 @@ public class MultigridFrame extends JFrame {
         @Override
         protected void processMouseMotionEvent(MouseEvent e) {
             super.processMouseMotionEvent(e);
-            repaint();
+//            repaint();
         }
 
         @Override
         protected void processMouseEvent(MouseEvent e) {
             super.processMouseEvent(e);
-            repaint();
+//            repaint();
         }
 
         @Override
@@ -339,6 +395,67 @@ public class MultigridFrame extends JFrame {
 
         private void fillCircle(Graphics2D g2, double x, double y, double radius) {
             g2.fill(new Ellipse2D.Double(x - radius, y - radius, 2 * radius, 2 * radius));
+        }
+
+        public static void fillTriangle(Graphics2D g2,
+                                        GridPoint a,
+                                        GridPoint b,
+                                        double t) {
+
+            double x1 = a.x(), x2 = b.x(), y1 = a.y(), y2 = b.y();
+
+            // Safety check: if t < 0 or t > 1, we can clamp or just continue
+            // but we assume it's in [0..1].
+
+            // 1) Compute the point P = apex at fraction t of the segment AB
+            double Px = x1 + t * (x2 - x1);
+            double Py = y1 + t * (y2 - y1);
+
+            // 2) Direction vector AB
+            double ABx = (x2 - x1);
+            double ABy = (y2 - y1);
+            double length = Math.hypot(ABx, ABy);
+
+            // If the two points are the same, avoid division by zero
+            if (length == 0.0) {
+                return;
+            }
+
+            // 3) Unit direction from A to B
+            double dx = ABx / length;
+            double dy = ABy / length;
+
+            // 4) For an equilateral triangle with side s=0.2:
+            double side = 0.3;
+            double height = (Math.sqrt(3) / 2.0) * side; // ~ 0.1732 for s=0.2
+            double halfBase = side / 2.0;                // 0.1 for s=0.2
+
+            // 5) We want the apex at (Px,Py) pointing "forward" (toward B),
+            //    so the base is behind the apex along -direction.
+            //    -> The midpoint of the base is M = P - height*d
+            double Mx = Px - height * dx;
+            double My = Py - height * dy;
+
+            // 6) Get a perpendicular to (dx,dy). That is ( -dy, dx ) or ( dy, -dx )
+            double px = -dy;
+            double py = dx;
+
+            // 7) Base endpoints = M +/- (halfBase)*p
+            double B1x = Mx + halfBase * px;
+            double B1y = My + halfBase * py;
+
+            double B2x = Mx - halfBase * px;
+            double B2y = My - halfBase * py;
+
+            // Create a path for the equilateral triangle
+            // Apex -> B1 -> B2 -> back to Apex
+            Path2D triangle = new Path2D.Double();
+            triangle.moveTo(Px, Py);       // apex
+            triangle.lineTo(B1x, B1y);     // base endpoint 1
+            triangle.lineTo(B2x, B2y);     // base endpoint 2
+            triangle.closePath();
+
+            g2.fill(triangle);
         }
 
         private void drawCircle(Graphics2D g2, double x, double y, double radius) {
