@@ -23,6 +23,9 @@ public class MultigridFrame extends JFrame {
     private Multigrid multigrid = new Multigrid(5, 2, .2, 0);
     private JButton zoomButton = new JButton("100%");
     private JLabel statusBar = new JLabel();
+    private boolean showColors;
+    private boolean showArrows;
+    private boolean reverseArrows;
 
     public MultigridFrame() {
         setTitle("Collider frame");
@@ -97,18 +100,49 @@ public class MultigridFrame extends JFrame {
         toolBar.add(insetSpinner);
         toolBar.addSeparator();
 
-        ChangeListener changeListener = new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                int symmetry = (int) symmetrySpinner.getValue();
-                int radius = (int) radiusSpinner.getValue();
-                double offset = (double) offsetSpinner.getValue();
-                double gridInset = (double) insetSpinner.getValue();
-                multigrid = new Multigrid(symmetry, radius, offset, gridInset);
-                updateStatusBar();
-                colliderPanel.revalidate();
-                colliderPanel.repaint();
+        JCheckBox colorCheckbox = new JCheckBox("Color");
+        toolBar.add(colorCheckbox);
+        colorCheckbox.addChangeListener(e -> {
+            showColors = colorCheckbox.isSelected();
+            repaint();
+        });
+        JCheckBox arrowsCheckbox = new JCheckBox("Arrows");
+        JCheckBox reverseArrowsCheckbox = new JCheckBox("Reverse arrows");
+
+        toolBar.add(arrowsCheckbox);
+        arrowsCheckbox.addChangeListener(e -> {
+            showArrows = arrowsCheckbox.isSelected();
+            if (!showArrows) {
+                reverseArrowsCheckbox.setSelected(false);
             }
+            reverseArrowsCheckbox.setEnabled(showArrows);
+            repaint();
+        });
+
+        toolBar.add(reverseArrowsCheckbox);
+        reverseArrowsCheckbox.addChangeListener(e -> {
+            reverseArrows = reverseArrowsCheckbox.isSelected();
+            repaint();
+        });
+
+        arrowsCheckbox.setEnabled(multigrid.getSymmetry() == 5);
+        reverseArrowsCheckbox.setEnabled(showArrows);
+
+        ChangeListener changeListener = e -> {
+            int symmetry = (int) symmetrySpinner.getValue();
+            arrowsCheckbox.setEnabled(symmetry == 5);
+            reverseArrowsCheckbox.setEnabled(symmetry == 5);
+            if (symmetry != 5) {
+                arrowsCheckbox.setSelected(false);
+                reverseArrowsCheckbox.setSelected(false);
+            }
+            int radius = (int) radiusSpinner.getValue();
+            double offset = (double) offsetSpinner.getValue();
+            double gridInset = (double) insetSpinner.getValue();
+            multigrid = new Multigrid(symmetry, radius, offset, gridInset);
+            updateStatusBar();
+            colliderPanel.revalidate();
+            colliderPanel.repaint();
         };
 
         symmetrySpinner.addChangeListener(changeListener);
@@ -217,9 +251,9 @@ public class MultigridFrame extends JFrame {
 
             g2.setColor(Color.RED);
 
-            drawTiles(g2, true);
-            if (multigrid.getSymmetry() == 5) {
-                drawArrows(g2);
+            drawTiles(g2, showColors);
+            if (showArrows) {
+                drawArrows(g2, reverseArrows);
             }
             g2.dispose();
         }
@@ -266,7 +300,7 @@ public class MultigridFrame extends JFrame {
             }
         }
 
-        private void drawArrows(Graphics2D g2) {
+        private void drawArrows(Graphics2D g2, boolean isReversed) {
             List<GridTile> tileList = multigrid.getTileList();
 
             for (int i = 0; i < tileList.size(); i++) {
@@ -294,8 +328,10 @@ public class MultigridFrame extends JFrame {
                 GridPoint mainVertex = a;
                 GridPoint secondaryVertex = c;
 
-//                mainVertex = c;
-//                secondaryVertex = a;
+                if (isReversed) {
+                    mainVertex = c;
+                    secondaryVertex = a;
+                }
 
                 if (tile.getArea() == 0.951057) {
                     drawDoubleArrow(g2, b, mainVertex);
