@@ -218,9 +218,9 @@ public class MultigridFrame extends JFrame {
             g2.setColor(Color.RED);
 
             drawTiles(g2, true);
-            drawArrows(g2);
-//            drawAxis(g2);
-
+            if (multigrid.getSymmetry() == 5) {
+                drawArrows(g2);
+            }
             g2.dispose();
         }
 
@@ -257,9 +257,9 @@ public class MultigridFrame extends JFrame {
                 }
                 path.closePath();
                 if (isFillTile) {
-//                    int colorIndex = multigrid.getTileAreaList().indexOf(tile.getArea());
-//                    g2.setColor(getColorList().get(colorIndex));
-//                    g2.fill(path);
+                    int colorIndex = multigrid.getTileAreaList().indexOf(tile.getArea());
+                    g2.setColor(getColorList().get(colorIndex));
+                    g2.fill(path);
                 }
                 g2.setColor(Color.BLACK);
                 g2.draw(path);
@@ -291,23 +291,29 @@ public class MultigridFrame extends JFrame {
                 GridPoint c = vertextList.get(2);
                 GridPoint d = vertextList.get(3);
 
+                GridPoint mainVertex = a;
+                GridPoint secondaryVertex = c;
+
+//                mainVertex = c;
+//                secondaryVertex = a;
+
                 if (tile.getArea() == 0.951057) {
-                    drawDoubleArrow(g2, b, a);
-                    drawDoubleArrow(g2, d, a);
-                    drawArrow(g2, b, c);
-                    drawArrow(g2, d, c);
+                    drawDoubleArrow(g2, b, mainVertex);
+                    drawDoubleArrow(g2, d, mainVertex);
+                    drawArrow(g2, b, secondaryVertex);
+                    drawArrow(g2, d, secondaryVertex);
                 } else {
-                    drawDoubleArrow(g2, b, a);
-                    drawDoubleArrow(g2, d, a);
-                    drawArrow(g2, c, b);
-                    drawArrow(g2, c, d);
+                    drawDoubleArrow(g2, b, mainVertex);
+                    drawDoubleArrow(g2, d, mainVertex);
+                    drawArrow(g2, secondaryVertex, b);
+                    drawArrow(g2, secondaryVertex, d);
                 }
                 g2.setClip(clip);
             }
         }
 
         private void drawArrow(Graphics2D g2, GridPoint p1, GridPoint p2) {
-            fillTriangle(g2, p1, p2, .5);
+            fillTriangle(g2, p1, p2, .65);
         }
 
         private void drawDoubleArrow(Graphics2D g2, GridPoint p1, GridPoint p2) {

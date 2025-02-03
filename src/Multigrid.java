@@ -26,9 +26,10 @@ public class Multigrid {
         this.symmetry = symmetry;
         this.offset = offset;
         this.gridInset = gridInset;
-//        double[] offsetArray = {0, -.2, .2, -.2, .2};
         double[] offsetArray = new double[symmetry];
         Arrays.fill(offsetArray, offset);
+
+//        offsetArray = new double[]{0, -.2, .3, -.4, .5};
 
         double multiplier = 2 * Math.PI / symmetry;
         for (int i = 0; i < symmetry; i++) {
@@ -171,7 +172,6 @@ public class Multigrid {
                 dualList.add(dual);
 
                 int sum = (int) vertexIndex % this.symmetry;
-//                dualIndexList.add(sum == 0 ? 2 : -sum);
                 dualIndexList.add(Math.abs(sum));
                 meanX += xd;
                 meanY += yd;
@@ -185,12 +185,10 @@ public class Multigrid {
                 tileList.add(tile);
                 tileAreaSet.add(tile.getArea());
 
-                tile.setVertexIndices(dualIndexList);
-
-//                if(tile.getArea() == 0.951057)
-                {
-//                    System.out.println("dualIndexList = " + dualIndexList);
+                if (getSymmetry() == 5) {
+                    tile.setVertexIndices(dualIndexList);
                 }
+
                 for (GridPoint point : dualList) {
                     if (point.x() > tilingRadius) {
                         tilingRadius = point.x();
@@ -204,8 +202,6 @@ public class Multigrid {
         tileList = Collections.unmodifiableList(tileList);
         tileAreaList = Collections.unmodifiableList(new ArrayList<>(tileAreaSet));
     }
-
-    boolean flag;
 
     public boolean contains(GridPoint point) {
         for (Grid grid : gridList) {
