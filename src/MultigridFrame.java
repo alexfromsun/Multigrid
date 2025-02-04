@@ -21,7 +21,8 @@ public class MultigridFrame extends JFrame {
     private Multigrid multigrid = new Multigrid(5, 2, .2, 0);
     private JButton zoomButton = new JButton("100%");
     private JLabel statusBar = new JLabel();
-    private boolean drawRhombi;
+    private boolean drawRhombi = true;
+    private boolean drawHBS;
     private boolean fillRhombi;
     private boolean showKitesAndDarts;
     private boolean showArrows;
@@ -102,24 +103,30 @@ public class MultigridFrame extends JFrame {
         toolBar.add(insetSpinner);
         toolBar.addSeparator();
 
-        JCheckBox drawRhombiCheckbox = new JCheckBox("Rhombi");
+        JCheckBox drawRhombiCheckbox = new JCheckBox("Draw rhombi", drawRhombi);
         toolBar.add(drawRhombiCheckbox);
-        drawRhombiCheckbox.addChangeListener(e -> {
+        drawRhombiCheckbox.addActionListener(e -> {
             drawRhombi = drawRhombiCheckbox.isSelected();
             repaint();
         });
-        drawRhombiCheckbox.setSelected(true);
+
+        JCheckBox drawHbsCheckbox = new JCheckBox("HBS");
+        toolBar.add(drawHbsCheckbox);
+        drawHbsCheckbox.addActionListener(e -> {
+            drawHBS = drawHbsCheckbox.isSelected();
+            repaint();
+        });
 
         JCheckBox fillRhombiCheckbox = new JCheckBox("Color");
         toolBar.add(fillRhombiCheckbox);
-        fillRhombiCheckbox.addChangeListener(e -> {
+        fillRhombiCheckbox.addActionListener(e -> {
             fillRhombi = fillRhombiCheckbox.isSelected();
             repaint();
         });
 
         JCheckBox kitesAndDartsCheckbox = new JCheckBox("Kites and Darts");
         toolBar.add(kitesAndDartsCheckbox);
-        kitesAndDartsCheckbox.addChangeListener(e -> {
+        kitesAndDartsCheckbox.addActionListener(e -> {
             showKitesAndDarts = kitesAndDartsCheckbox.isSelected();
             repaint();
         });
@@ -128,7 +135,7 @@ public class MultigridFrame extends JFrame {
         JCheckBox reverseArrowsCheckbox = new JCheckBox("Reverse arrows");
 
         toolBar.add(arrowsCheckbox);
-        arrowsCheckbox.addChangeListener(e -> {
+        arrowsCheckbox.addActionListener(e -> {
             showArrows = arrowsCheckbox.isSelected();
             repaint();
         });
@@ -169,7 +176,6 @@ public class MultigridFrame extends JFrame {
 
         // todo: fix the zoom button
         zoomButton.addActionListener(e ->
-
         {
             colliderPanel.setZoom(1);
             zoomButton.setText((int) (colliderPanel.getZoom() * 100) + "%");
@@ -274,8 +280,12 @@ public class MultigridFrame extends JFrame {
                 fillRhombi(g2);
             }
 
+            if (drawHBS) {
+                drawRhombi(g2, true);
+            }
+
             if (drawRhombi) {
-                drawRhombi(g2);
+                drawRhombi(g2, false);
             }
 
             if (showKitesAndDarts) {
@@ -309,22 +319,28 @@ public class MultigridFrame extends JFrame {
             }
         }
 
-        private void drawRhombi(Graphics2D g2) {
-            List<GridTile> tileList = multigrid.getTileList();
+        private void drawRhombi(Graphics2D g2, boolean isHbs) {
+            g2.setColor(Color.BLACK);
 
+            List<GridTile> tileList = multigrid.getTileList();
             for (int i = 0; i < tileList.size(); i++) {
                 GridTile tile = tileList.get(i);
-                Path2D.Double path = new Path2D.Double();
                 List<GridPoint> vertextList = tile.getVertexList();
 
-                path.moveTo(vertextList.getFirst().x(), vertextList.getFirst().y());
-                for (int j = 1; j < vertextList.size(); j++) {
-                    GridPoint dual = vertextList.get(j);
-                    path.lineTo(dual.x(), dual.y());
+                GridPoint a = vertextList.get(reverseRhombi ? 2 : 0);
+                GridPoint b = vertextList.get(1);
+                GridPoint c = vertextList.get(reverseRhombi ? 0 : 2);
+                GridPoint d = vertextList.get(3);
+                if (!isHbs) {
+                    Line2D ab = new Line2D.Double(a.x(), a.y(), b.x(), b.y());
+                    g2.draw(ab);
+                    Line2D ad = new Line2D.Double(a.x(), a.y(), d.x(), d.y());
+                    g2.draw(ad);
                 }
-                path.closePath();
-                g2.setColor(Color.BLACK);
-                g2.draw(path);
+                Line2D cb = new Line2D.Double(c.x(), c.y(), b.x(), b.y());
+                g2.draw(cb);
+                Line2D cd = new Line2D.Double(c.x(), c.y(), d.x(), d.y());
+                g2.draw(cd);
             }
         }
 
