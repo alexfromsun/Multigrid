@@ -1,8 +1,6 @@
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
@@ -23,9 +21,13 @@ public class MultigridFrame extends JFrame {
     private Multigrid multigrid = new Multigrid(5, 2, .2, 0);
     private JButton zoomButton = new JButton("100%");
     private JLabel statusBar = new JLabel();
-    private boolean showColors;
+    private boolean drawRhombi;
+    private boolean fillRhombi;
+    private boolean showKitesAndDarts;
     private boolean showArrows;
-    private boolean reverseArrows;
+    private boolean reverseRhombi;
+
+    private static final double PHI = (1 + Math.sqrt(5)) / 2.0;
 
     public MultigridFrame() {
         setTitle("Collider frame");
@@ -100,33 +102,44 @@ public class MultigridFrame extends JFrame {
         toolBar.add(insetSpinner);
         toolBar.addSeparator();
 
-        JCheckBox colorCheckbox = new JCheckBox("Color");
-        toolBar.add(colorCheckbox);
-        colorCheckbox.addChangeListener(e -> {
-            showColors = colorCheckbox.isSelected();
+        JCheckBox drawRhombiCheckbox = new JCheckBox("Rhombi");
+        toolBar.add(drawRhombiCheckbox);
+        drawRhombiCheckbox.addChangeListener(e -> {
+            drawRhombi = drawRhombiCheckbox.isSelected();
             repaint();
         });
+        drawRhombiCheckbox.setSelected(true);
+
+        JCheckBox fillRhombiCheckbox = new JCheckBox("Color");
+        toolBar.add(fillRhombiCheckbox);
+        fillRhombiCheckbox.addChangeListener(e -> {
+            fillRhombi = fillRhombiCheckbox.isSelected();
+            repaint();
+        });
+
+        JCheckBox kitesAndDartsCheckbox = new JCheckBox("Kites and Darts");
+        toolBar.add(kitesAndDartsCheckbox);
+        kitesAndDartsCheckbox.addChangeListener(e -> {
+            showKitesAndDarts = kitesAndDartsCheckbox.isSelected();
+            repaint();
+        });
+
         JCheckBox arrowsCheckbox = new JCheckBox("Arrows");
         JCheckBox reverseArrowsCheckbox = new JCheckBox("Reverse arrows");
 
         toolBar.add(arrowsCheckbox);
         arrowsCheckbox.addChangeListener(e -> {
             showArrows = arrowsCheckbox.isSelected();
-            if (!showArrows) {
-                reverseArrowsCheckbox.setSelected(false);
-            }
-            reverseArrowsCheckbox.setEnabled(showArrows);
             repaint();
         });
 
         toolBar.add(reverseArrowsCheckbox);
         reverseArrowsCheckbox.addChangeListener(e -> {
-            reverseArrows = reverseArrowsCheckbox.isSelected();
+            reverseRhombi = reverseArrowsCheckbox.isSelected();
             repaint();
         });
 
         arrowsCheckbox.setEnabled(multigrid.getSymmetry() == 5);
-        reverseArrowsCheckbox.setEnabled(showArrows);
 
         ChangeListener changeListener = e -> {
             int symmetry = (int) symmetrySpinner.getValue();
@@ -155,7 +168,9 @@ public class MultigridFrame extends JFrame {
         toolBar.add(zoomButton);
 
         // todo: fix the zoom button
-        zoomButton.addActionListener(e -> {
+        zoomButton.addActionListener(e ->
+
+        {
             colliderPanel.setZoom(1);
             zoomButton.setText((int) (colliderPanel.getZoom() * 100) + "%");
         });
@@ -178,10 +193,14 @@ public class MultigridFrame extends JFrame {
         plusButton.addActionListener(zoomAction);
 
         add(toolBar, BorderLayout.PAGE_START);
+
         add(statusBar, BorderLayout.PAGE_END);
+
         updateStatusBar();
 
-        SwingUtilities.invokeLater(() -> {
+        SwingUtilities.invokeLater(() ->
+
+        {
             setMinimumSize(new Dimension(800, 600));
             offsetSpinner.requestFocus();
         });
@@ -247,36 +266,30 @@ public class MultigridFrame extends JFrame {
             g2.setStroke(new BasicStroke((float) .05, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             g2.setColor(Color.LIGHT_GRAY);
 
-            drawLines(g2);
+//            drawLines(g2);
 
             g2.setColor(Color.RED);
 
-            drawTiles(g2, showColors);
-            if (showArrows) {
-                drawArrows(g2, reverseArrows);
+            if (fillRhombi) {
+                fillRhombi(g2);
             }
+
+            if (drawRhombi) {
+                drawRhombi(g2);
+            }
+
+            if (showKitesAndDarts) {
+                drawKitesAndDarts(g2);
+            }
+
+            if (showArrows) {
+                drawArrows(g2);
+            }
+
             g2.dispose();
         }
 
-        public List<Color> getColorList() {
-            if (colorList.size() != multigrid.getTileAreaList().size()) {
-                colorList.clear();
-                // Distribute the hue values evenly around the color wheel
-                int colorListSize = multigrid.getTileAreaList().size();
-                for (int i = 0; i < colorListSize; i++) {
-                    float hue = (float) i / colorListSize;     // 0.0 to <1.0
-                    float saturation = 0.8f;      // set between 0.0 and 1.0
-                    float brightness = 0.9f;      // set between 0.0 and 1.0
-
-                    // Create the Color using HSB -> RGB conversion
-                    Color color = Color.getHSBColor(hue, saturation, brightness);
-                    colorList.add(color);
-                }
-            }
-            return colorList;
-        }
-
-        private void drawTiles(Graphics2D g2, boolean isFillTile) {
+        private void fillRhombi(Graphics2D g2) {
             List<GridTile> tileList = multigrid.getTileList();
 
             for (int i = 0; i < tileList.size(); i++) {
@@ -290,17 +303,92 @@ public class MultigridFrame extends JFrame {
                     path.lineTo(dual.x(), dual.y());
                 }
                 path.closePath();
-                if (isFillTile) {
-                    int colorIndex = multigrid.getTileAreaList().indexOf(tile.getArea());
-                    g2.setColor(getColorList().get(colorIndex));
-                    g2.fill(path);
+                int colorIndex = multigrid.getTileAreaList().indexOf(tile.getArea());
+                g2.setColor(getColorList().get(colorIndex));
+                g2.fill(path);
+            }
+        }
+
+        private void drawRhombi(Graphics2D g2) {
+            List<GridTile> tileList = multigrid.getTileList();
+
+            for (int i = 0; i < tileList.size(); i++) {
+                GridTile tile = tileList.get(i);
+                Path2D.Double path = new Path2D.Double();
+                List<GridPoint> vertextList = tile.getVertexList();
+
+                path.moveTo(vertextList.getFirst().x(), vertextList.getFirst().y());
+                for (int j = 1; j < vertextList.size(); j++) {
+                    GridPoint dual = vertextList.get(j);
+                    path.lineTo(dual.x(), dual.y());
                 }
+                path.closePath();
                 g2.setColor(Color.BLACK);
                 g2.draw(path);
             }
         }
 
-        private void drawArrows(Graphics2D g2, boolean isReversed) {
+        private void drawKitesAndDarts(Graphics2D g2) {
+
+            g2.setColor(Color.BLACK);
+
+            List<GridTile> tileList = multigrid.getTileList();
+            for (int i = 0; i < tileList.size(); i++) {
+                GridTile tile = tileList.get(i);
+                List<GridPoint> vertextList = tile.getVertexList();
+                GridPoint a = vertextList.get(reverseRhombi ? 2 : 0);
+                GridPoint b = vertextList.get(1);
+                GridPoint c = vertextList.get(reverseRhombi ? 0 : 2);
+                GridPoint d = vertextList.get(3);
+
+                if (tile.getArea() == 0.587785) {
+                    Line2D diagonal =
+                            new Line2D.Double(a.x(), a.y(), c.x(), c.y());
+                    g2.draw(diagonal);
+
+                    Line2D lineAB =
+                            new Line2D.Double(a.x(), a.y(), b.x(), b.y());
+                    g2.draw(lineAB);
+
+                    Line2D lineAD =
+                            new Line2D.Double(a.x(), a.y(), d.x(), d.y());
+                    g2.draw(lineAD);
+
+                } else if (tile.getArea() == 0.951057) {
+                    double dx = a.x() - c.x();
+                    double dy = a.y() - c.y();
+
+                    double t = 1.0 / PHI;
+
+                    double innerX = c.x() + t * dx;
+                    double innerY = c.y() + t * dy;
+
+                    Line2D innerLine =
+                            new Line2D.Double(c.x(), c.y(), innerX, innerY);
+                    g2.draw(innerLine);
+
+                    Line2D lineIB =
+                            new Line2D.Double(b.x(), b.y(), innerX, innerY);
+                    g2.draw(lineIB);
+
+                    Line2D lineID =
+                            new Line2D.Double(d.x(), d.y(), innerX, innerY);
+                    g2.draw(lineID);
+
+                    Line2D lineAB =
+                            new Line2D.Double(a.x(), a.y(), b.x(), b.y());
+                    g2.draw(lineAB);
+
+                    Line2D lineAD =
+                            new Line2D.Double(a.x(), a.y(), d.x(), d.y());
+                    g2.draw(lineAD);
+                } else {
+                    throw new AssertionError("Unexpected tile's area: " + tile.getArea());
+                }
+            }
+        }
+
+        private void drawArrows(Graphics2D g2) {
             List<GridTile> tileList = multigrid.getTileList();
 
             for (int i = 0; i < tileList.size(); i++) {
@@ -320,29 +408,21 @@ public class MultigridFrame extends JFrame {
                 Shape clip = g2.getClip();
                 g2.clip(path);
 
-                GridPoint a = vertextList.get(0);
+                GridPoint a = vertextList.get(reverseRhombi ? 2 : 0);
                 GridPoint b = vertextList.get(1);
-                GridPoint c = vertextList.get(2);
+                GridPoint c = vertextList.get(reverseRhombi ? 0 : 2);
                 GridPoint d = vertextList.get(3);
 
-                GridPoint mainVertex = a;
-                GridPoint secondaryVertex = c;
-
-                if (isReversed) {
-                    mainVertex = c;
-                    secondaryVertex = a;
-                }
-
                 if (tile.getArea() == 0.951057) {
-                    drawDoubleArrow(g2, b, mainVertex);
-                    drawDoubleArrow(g2, d, mainVertex);
-                    drawArrow(g2, b, secondaryVertex);
-                    drawArrow(g2, d, secondaryVertex);
+                    drawDoubleArrow(g2, b, a);
+                    drawDoubleArrow(g2, d, a);
+                    drawArrow(g2, b, c);
+                    drawArrow(g2, d, c);
                 } else {
-                    drawDoubleArrow(g2, b, mainVertex);
-                    drawDoubleArrow(g2, d, mainVertex);
-                    drawArrow(g2, secondaryVertex, b);
-                    drawArrow(g2, secondaryVertex, d);
+                    drawDoubleArrow(g2, b, a);
+                    drawDoubleArrow(g2, d, a);
+                    drawArrow(g2, c, b);
+                    drawArrow(g2, c, d);
                 }
                 g2.setClip(clip);
             }
@@ -363,6 +443,24 @@ public class MultigridFrame extends JFrame {
             g2.setStroke(new BasicStroke((float) .05));
             drawLine(g2, new GridLine(0, 0));
             drawLine(g2, new GridLine(-Math.PI / 2, 0));
+        }
+
+        public List<Color> getColorList() {
+            if (colorList.size() != multigrid.getTileAreaList().size()) {
+                colorList.clear();
+                // Distribute the hue values evenly around the color wheel
+                int colorListSize = multigrid.getTileAreaList().size();
+                for (int i = 0; i < colorListSize; i++) {
+                    float hue = (float) i / colorListSize;     // 0.0 to <1.0
+                    float saturation = 0.8f;      // set between 0.0 and 1.0
+                    float brightness = 0.9f;      // set between 0.0 and 1.0
+
+                    // Create the Color using HSB -> RGB conversion
+                    Color color = Color.getHSBColor(hue, saturation, brightness);
+                    colorList.add(color);
+                }
+            }
+            return colorList;
         }
 
         private void debug(Graphics2D g2) {
