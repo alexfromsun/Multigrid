@@ -22,7 +22,7 @@ public class MultigridFrame extends JFrame {
     private JButton zoomButton = new JButton("100%");
     private JLabel statusBar = new JLabel();
     private boolean drawRhombi = true;
-    private boolean drawHBS;
+    private boolean showTrapezium;
     private boolean fillRhombi;
     private boolean showKitesAndDarts;
     private boolean showArrows;
@@ -110,10 +110,10 @@ public class MultigridFrame extends JFrame {
             repaint();
         });
 
-        JCheckBox drawHbsCheckbox = new JCheckBox("HBS");
-        toolBar.add(drawHbsCheckbox);
-        drawHbsCheckbox.addActionListener(e -> {
-            drawHBS = drawHbsCheckbox.isSelected();
+        JCheckBox trapeziumHbsCheckbox = new JCheckBox("HBS", showTrapezium);
+        toolBar.add(trapeziumHbsCheckbox);
+        trapeziumHbsCheckbox.addActionListener(e -> {
+            showTrapezium = trapeziumHbsCheckbox.isSelected();
             repaint();
         });
 
@@ -132,7 +132,7 @@ public class MultigridFrame extends JFrame {
         });
 
         JCheckBox arrowsCheckbox = new JCheckBox("Arrows");
-        JCheckBox reverseArrowsCheckbox = new JCheckBox("Reverse arrows");
+        JCheckBox reverseArrowsCheckbox = new JCheckBox("Reverse arrows", reverseRhombi);
 
         toolBar.add(arrowsCheckbox);
         arrowsCheckbox.addActionListener(e -> {
@@ -280,12 +280,12 @@ public class MultigridFrame extends JFrame {
                 fillRhombi(g2);
             }
 
-            if (drawHBS) {
-                drawRhombi(g2, true);
+            if (drawRhombi) {
+                drawRhombi(g2);
             }
 
-            if (drawRhombi) {
-                drawRhombi(g2, false);
+            if (showTrapezium) {
+                drawTrapezium(g2);
             }
 
             if (showKitesAndDarts) {
@@ -297,6 +297,73 @@ public class MultigridFrame extends JFrame {
             }
 
             g2.dispose();
+        }
+
+        private void drawTrapezium(Graphics2D g2) {
+            g2.setColor(Color.BLACK);
+            boolean isHbs = false;
+
+            List<GridTile> tileList = multigrid.getTileList();
+            for (int i = 0; i < tileList.size(); i++) {
+                GridTile tile = tileList.get(i);
+                List<GridPoint> vertextList = tile.getVertexList();
+
+                GridPoint a = vertextList.get(reverseRhombi ? 2 : 0);
+                GridPoint b = vertextList.get(reverseRhombi ? 1 : 3);
+                GridPoint c = vertextList.get(reverseRhombi ? 0 : 2);
+                GridPoint d = vertextList.get(reverseRhombi ? 3 : 1);
+
+                if (tile.getArea() == 0.587785) {
+                    Line2D diagonal =
+                            new Line2D.Double(a.x(), a.y(), c.x(), c.y());
+                    g2.draw(diagonal);
+
+//                    Line2D lineAB =
+//                            new Line2D.Double(a.x(), a.y(), b.x(), b.y());
+//                    g2.draw(lineAB);
+
+//                    Line2D lineAD =
+//                            new Line2D.Double(a.x(), a.y(), d.x(), d.y());
+//                    g2.draw(lineAD);
+//
+                    Line2D lineCD =
+                            new Line2D.Double(c.x(), c.y(), d.x(), d.y());
+                    g2.draw(lineCD);
+                   Line2D lineDB =
+                            new Line2D.Double(c.x(), c.y(), b.x(), b.y());
+                    g2.draw(lineDB);
+
+                } else if (tile.getArea() == 0.951057) {
+                    double dx = a.x() - c.x();
+                    double dy = a.y() - c.y();
+
+                    double t = 1.0 / PHI;
+
+                    double innerX = c.x() + t * dx;
+                    double innerY = c.y() + t * dy;
+
+                    Line2D cb =
+                            new Line2D.Double(c.x(), c.y(), b.x(), b.y());
+                    g2.draw(cb);
+
+                    Line2D cd =
+                            new Line2D.Double(c.x(), c.y(), d.x(), d.y());
+                    g2.draw(cd);
+
+                    Line2D lineIB =
+                            new Line2D.Double(b.x(), b.y(), innerX, innerY);
+                    g2.draw(lineIB);
+
+                    Line2D lineID =
+                            new Line2D.Double(d.x(), d.y(), innerX, innerY);
+                    g2.draw(lineID);
+
+                    Line2D lineIA =
+                            new Line2D.Double(a.x(), a.y(), innerX, innerY);
+                    g2.draw(lineIA);
+
+                }
+            }
         }
 
         private void fillRhombi(Graphics2D g2) {
@@ -319,8 +386,9 @@ public class MultigridFrame extends JFrame {
             }
         }
 
-        private void drawRhombi(Graphics2D g2, boolean isHbs) {
+        private void drawRhombi(Graphics2D g2) {
             g2.setColor(Color.BLACK);
+            boolean isHbs = false;
 
             List<GridTile> tileList = multigrid.getTileList();
             for (int i = 0; i < tileList.size(); i++) {

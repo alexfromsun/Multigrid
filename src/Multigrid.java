@@ -460,6 +460,10 @@ record GridPoint(double x, double y) {
         return Math.sqrt(Math.pow(point.x - x, 2) + Math.pow(point.y - y, 2));
     }
 
+    public GridPoint getCenter(GridPoint point) {
+        return new GridPoint((x + point.x)/2 , (y + point.y)/2);
+    }
+
     public GridPoint rotateAndShift(double angle, double offset) {
         // Rotate the point
         double rotatedX = x * Math.cos(angle) - y * Math.sin(angle);
