@@ -464,6 +464,13 @@ record GridPoint(double x, double y) {
         return new GridPoint((x + point.x)/2 , (y + point.y)/2);
     }
 
+    public GridPoint getPointInDirection(GridPoint p, double distance) {
+        double length = getDistance(p);
+        double fx = (p.x - x) / length;
+        double fy = (p.y - y) / length;
+        return new GridPoint(x + fx * distance, y + fy * distance);
+    }
+
     public GridPoint rotateAndShift(double angle, double offset) {
         // Rotate the point
         double rotatedX = x * Math.cos(angle) - y * Math.sin(angle);
