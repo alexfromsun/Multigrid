@@ -100,45 +100,45 @@ public class MultigridFrame extends JFrame {
         });
 
         toolBar.add(insetSpinner);
+
         toolBar.addSeparator();
 
-        JCheckBox fillRhombiCheckbox = new JCheckBox("Color", fillRhombi);
+        JRadioButton drawRhombiRadioButton = new JRadioButton("Rhombi", drawRhombi);
+        toolBar.add(drawRhombiRadioButton);
+        JRadioButton cromwellTrapeziumRadioButton = new JRadioButton("Cromwell", showCromwellTrapezium);
+        toolBar.add(cromwellTrapeziumRadioButton);
+        JRadioButton myTilingRadioButton = new JRadioButton("My tiling", showMyTiling);
+        toolBar.add(myTilingRadioButton);
+        JRadioButton kitesAndDartsRadioButton = new JRadioButton("Kites and Darts", showKitesAndDarts);
+        toolBar.add(kitesAndDartsRadioButton);
+
+        ActionListener radioButtonListener = e -> {
+            drawRhombi = drawRhombiRadioButton.isSelected();
+            showMyTiling = myTilingRadioButton.isSelected();
+            showCromwellTrapezium = cromwellTrapeziumRadioButton.isSelected();
+            showKitesAndDarts = kitesAndDartsRadioButton.isSelected();
+            repaint();
+        };
+
+        drawRhombiRadioButton.addActionListener(radioButtonListener);
+        myTilingRadioButton.addActionListener(radioButtonListener);
+        cromwellTrapeziumRadioButton.addActionListener(radioButtonListener);
+        kitesAndDartsRadioButton.addActionListener(radioButtonListener);
+
+        ButtonGroup buttonGroup = new ButtonGroup();
+        buttonGroup.add(drawRhombiRadioButton);
+        buttonGroup.add(cromwellTrapeziumRadioButton);
+        buttonGroup.add(myTilingRadioButton);
+        buttonGroup.add(kitesAndDartsRadioButton);
+
+        toolBar.addSeparator();
+
+        JCheckBox fillRhombiCheckbox = new JCheckBox("Color rhombi", fillRhombi);
         toolBar.add(fillRhombiCheckbox);
         fillRhombiCheckbox.addActionListener(e -> {
             fillRhombi = fillRhombiCheckbox.isSelected();
             repaint();
         });
-
-        JCheckBox drawRhombiCheckbox = new JCheckBox("Rhombi", drawRhombi);
-        toolBar.add(drawRhombiCheckbox);
-        drawRhombiCheckbox.addActionListener(e -> {
-            drawRhombi = drawRhombiCheckbox.isSelected();
-            repaint();
-        });
-
-        JCheckBox cromwellTrapeziumCheckbox = new JCheckBox("Cromwell", showCromwellTrapezium);
-        toolBar.add(cromwellTrapeziumCheckbox);
-        cromwellTrapeziumCheckbox.addActionListener(e -> {
-            showCromwellTrapezium = cromwellTrapeziumCheckbox.isSelected();
-            repaint();
-        });
-
-        JCheckBox myTilingCheckbox = new JCheckBox("My tiling", showMyTiling);
-        toolBar.add(myTilingCheckbox);
-        myTilingCheckbox.addActionListener(e -> {
-            showMyTiling = myTilingCheckbox.isSelected();
-            repaint();
-        });
-
-
-        JCheckBox kitesAndDartsCheckbox = new JCheckBox("Kites and Darts");
-        toolBar.add(kitesAndDartsCheckbox);
-        kitesAndDartsCheckbox.addActionListener(e -> {
-            showKitesAndDarts = kitesAndDartsCheckbox.isSelected();
-            repaint();
-        });
-
-        toolBar.addSeparator();
 
         JCheckBox arrowsCheckbox = new JCheckBox("Show arrows");
         JCheckBox reverseArrowsCheckbox = new JCheckBox("Reverse rhombi", reverseRhombi);
@@ -388,7 +388,8 @@ public class MultigridFrame extends JFrame {
                                 double area) {
             int colorIndex = multigrid.getTileAreaList().indexOf(area);
             g2.setColor(getColorList().get(colorIndex));
-            g2.fill(getPath(a, b, c, d));
+            Path2D path = getPath(a, b, c, d);
+            g2.fill(path);
         }
 
         private void drawRhombi(Graphics2D g2,
