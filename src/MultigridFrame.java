@@ -24,7 +24,7 @@ public class MultigridFrame extends JFrame {
     private boolean drawRhombi = true;
     private boolean showCromwellTrapezium;
     private boolean showMyTiling;
-    private boolean fillRhombi = true;
+    private boolean fillRhombi;
     private boolean showKitesAndDarts;
     private boolean showArrows;
     private boolean reverseRhombi;
@@ -438,17 +438,10 @@ public class MultigridFrame extends JFrame {
         private void drawArrows(Graphics2D g2,
                                 GridPoint a, GridPoint b, GridPoint c, GridPoint d,
                                 double area) {
-            Path2D.Double path = new Path2D.Double();
-
-            path.moveTo(a.x(), a.y());
-            path.lineTo(b.x(), b.y());
-            path.lineTo(c.x(), c.y());
-            path.lineTo(d.x(), d.y());
-            path.closePath();
             g2.setColor(Color.BLACK);
 
             Shape clip = g2.getClip();
-            g2.clip(path);
+            g2.clip(getPath(a, b, c, d));
 
             if (area == 0.587785) {
                 drawDoubleArrow(g2, b, a);

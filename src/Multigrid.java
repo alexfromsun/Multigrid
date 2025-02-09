@@ -565,3 +565,22 @@ class GridTile {
         return vertexList;
     }
 }
+
+/*
+private boolean isRightTriangle(Triangle t) {
+    Complex AB = t.B().subtract(t.A());
+    Complex AC = t.C().subtract(t.A());
+    return (AB.getReal() * AC.getImaginary() - AB.getImaginary() * AC.getReal() < 0);
+}
+
+private Complex convertPoint(Complex point, Complex A, Complex B) {
+    Complex AB = A.subtract(B);
+    Complex normalizedPoint = point.multiply(AB.abs());
+    double angle = Math.atan2(B.getImaginary() - A.getImaginary(), B.getReal() - A.getReal());
+    double rotatedX = normalizedPoint.getReal() * Math.cos(angle) + normalizedPoint.getImaginary() * Math.sin(angle);
+    double rotatedY = normalizedPoint.getReal() * Math.sin(angle) - normalizedPoint.getImaginary() * Math.cos(angle);
+    Complex rotatedPoint = new Complex(rotatedX, rotatedY);
+    return rotatedPoint.add(A);
+}
+*/
+
