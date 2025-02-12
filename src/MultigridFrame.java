@@ -18,16 +18,19 @@ public class MultigridFrame extends JFrame {
 
     private final ColliderPanel colliderPanel = new ColliderPanel();
     private final JToolBar toolBar = new JToolBar();
-    private Multigrid multigrid = new Multigrid(5, 4, .2, 0);
+    private Multigrid multigrid = new Multigrid(5, 2, .2, 0);
     private JButton zoomButton = new JButton("100%");
     private JLabel statusBar = new JLabel();
-    private boolean drawRhombi = true;
-    private boolean showCromwellTrapezium;
-    private boolean showMyTiling;
+    private boolean drawRhombi;
+    private boolean showCromwell;
+    private boolean showMyTiling = true;
+    private boolean showRibbons;
+    private boolean showEquilateralAmman;
     private boolean fillRhombi;
     private boolean showKitesAndDarts;
     private boolean showArrows;
     private boolean reverseRhombi;
+    private boolean showSourceTiling;
 
     public MultigridFrame() {
         setTitle("Collider frame");
@@ -105,43 +108,52 @@ public class MultigridFrame extends JFrame {
 
         JRadioButton drawRhombiRadioButton = new JRadioButton("Rhombi", drawRhombi);
         toolBar.add(drawRhombiRadioButton);
-        JRadioButton cromwellTrapeziumRadioButton = new JRadioButton("Cromwell", showCromwellTrapezium);
+        JRadioButton kitesAndDartsRadioButton = new JRadioButton("Kites", showKitesAndDarts);
+        toolBar.add(kitesAndDartsRadioButton);
+        JRadioButton cromwellTrapeziumRadioButton = new JRadioButton("Cromwell", showCromwell);
         toolBar.add(cromwellTrapeziumRadioButton);
+        JRadioButton ribbonsRadioButton = new JRadioButton("Ribbons", showRibbons);
+        toolBar.add(ribbonsRadioButton);
         JRadioButton myTilingRadioButton = new JRadioButton("My tiling", showMyTiling);
         toolBar.add(myTilingRadioButton);
-        JRadioButton kitesAndDartsRadioButton = new JRadioButton("Kites and Darts", showKitesAndDarts);
-        toolBar.add(kitesAndDartsRadioButton);
+        JRadioButton equilateralAmmanRadioButton = new JRadioButton("Equilateral Amman", showEquilateralAmman);
+        toolBar.add(equilateralAmmanRadioButton);
 
         ActionListener radioButtonListener = e -> {
             drawRhombi = drawRhombiRadioButton.isSelected();
             showMyTiling = myTilingRadioButton.isSelected();
-            showCromwellTrapezium = cromwellTrapeziumRadioButton.isSelected();
+            showCromwell = cromwellTrapeziumRadioButton.isSelected();
             showKitesAndDarts = kitesAndDartsRadioButton.isSelected();
+            showRibbons = ribbonsRadioButton.isSelected();
+            showEquilateralAmman = equilateralAmmanRadioButton.isSelected();
             repaint();
         };
 
         drawRhombiRadioButton.addActionListener(radioButtonListener);
-        myTilingRadioButton.addActionListener(radioButtonListener);
-        cromwellTrapeziumRadioButton.addActionListener(radioButtonListener);
         kitesAndDartsRadioButton.addActionListener(radioButtonListener);
+        cromwellTrapeziumRadioButton.addActionListener(radioButtonListener);
+        myTilingRadioButton.addActionListener(radioButtonListener);
+        ribbonsRadioButton.addActionListener(radioButtonListener);
+        equilateralAmmanRadioButton.addActionListener(radioButtonListener);
 
         ButtonGroup buttonGroup = new ButtonGroup();
         buttonGroup.add(drawRhombiRadioButton);
+        buttonGroup.add(kitesAndDartsRadioButton);
         buttonGroup.add(cromwellTrapeziumRadioButton);
         buttonGroup.add(myTilingRadioButton);
-        buttonGroup.add(kitesAndDartsRadioButton);
+        buttonGroup.add(ribbonsRadioButton);
+        buttonGroup.add(equilateralAmmanRadioButton);
 
         toolBar.addSeparator();
 
-        JCheckBox fillRhombiCheckbox = new JCheckBox("Color rhombi", fillRhombi);
+        JCheckBox fillRhombiCheckbox = new JCheckBox("Color", fillRhombi);
         toolBar.add(fillRhombiCheckbox);
         fillRhombiCheckbox.addActionListener(e -> {
             fillRhombi = fillRhombiCheckbox.isSelected();
             repaint();
         });
 
-        JCheckBox arrowsCheckbox = new JCheckBox("Show arrows");
-        JCheckBox reverseArrowsCheckbox = new JCheckBox("Reverse rhombi", reverseRhombi);
+        JCheckBox arrowsCheckbox = new JCheckBox("Arrows");
 
         toolBar.add(arrowsCheckbox);
         arrowsCheckbox.addActionListener(e -> {
@@ -149,9 +161,17 @@ public class MultigridFrame extends JFrame {
             repaint();
         });
 
+        JCheckBox reverseArrowsCheckbox = new JCheckBox("Reverse", reverseRhombi);
         toolBar.add(reverseArrowsCheckbox);
         reverseArrowsCheckbox.addChangeListener(e -> {
             reverseRhombi = reverseArrowsCheckbox.isSelected();
+            repaint();
+        });
+
+        JCheckBox sourceTilingCheckbox = new JCheckBox("Source tiling", showSourceTiling);
+        toolBar.add(sourceTilingCheckbox);
+        sourceTilingCheckbox.addChangeListener(e -> {
+            showSourceTiling = sourceTilingCheckbox.isSelected();
             repaint();
         });
 
@@ -285,6 +305,19 @@ public class MultigridFrame extends JFrame {
 //            drawLines(g2);
 
             List<GridTile> tileList = multigrid.getTileList();
+
+            if (showSourceTiling) {
+                for (int i = 0; i < tileList.size(); i++) {
+                    GridTile tile = tileList.get(i);
+                    List<GridPoint> vertextList = tile.getVertexList();
+
+                    GridPoint a = vertextList.get(reverseRhombi ? 2 : 0);
+                    GridPoint b = vertextList.get(reverseRhombi ? 1 : 3);
+                    GridPoint c = vertextList.get(reverseRhombi ? 0 : 2);
+                    GridPoint d = vertextList.get(reverseRhombi ? 3 : 1);
+                    drawRhombi(g2, a, b, c, d, Color.ORANGE);
+                }
+            }
             for (int i = 0; i < tileList.size(); i++) {
                 GridTile tile = tileList.get(i);
                 List<GridPoint> vertextList = tile.getVertexList();
@@ -294,81 +327,193 @@ public class MultigridFrame extends JFrame {
                 GridPoint c = vertextList.get(reverseRhombi ? 0 : 2);
                 GridPoint d = vertextList.get(reverseRhombi ? 3 : 1);
 
+                double area = tile.getArea();
+
                 if (fillRhombi) {
-                    fillRhombi(g2, a, b, c, d, tile.getArea());
+                    fillRhombi(g2, a, b, c, d, area);
                 }
 
                 if (drawRhombi) {
-                    drawRhombi(g2, a, b, c, d, tile.getArea());
-                }
-
-                if (showCromwellTrapezium) {
-                    drawCromwellTrapezium(g2, a, b, c, d, tile.getArea());
-                }
-
-                if (showMyTiling) {
-                    drawMyTiling(g2, a, b, c, d, tile.getArea());
+                    drawRhombi(g2, a, b, c, d, Color.BLACK);
                 }
 
                 if (showKitesAndDarts) {
-                    drawKitesAndDarts(g2, a, b, c, d, tile.getArea());
+                    drawKitesAndDarts(g2, a, b, c, d, area);
+                }
+
+                if (showCromwell) {
+                    drawCromwellTrapezium(g2, a, b, c, d, area);
+                }
+
+                if (showMyTiling) {
+                    drawMyTiling(g2, a, b, c, d, area);
+                }
+
+                if (showRibbons) {
+                    drawRibbonTiling(g2, a, b, c, d, area);
+                }
+
+                if (showEquilateralAmman) {
+                    drawEquilateralAmmanTiling(g2, a, b, c, d, area);
                 }
 
                 if (showArrows) {
-                    drawArrows(g2, a, b, c, d, tile.getArea());
+                    drawArrows(g2, a, b, c, d, area);
                 }
             }
             g2.dispose();
         }
+
+
+        // Amman tiling variation, point J is on the point D of the thin rhombus
+        private void drawRibbonTiling(Graphics2D g2,
+                                      GridPoint a, GridPoint b, GridPoint c, GridPoint d,
+                                      double area) {
+            g2.setColor(Color.BLACK);
+            if (area == 0.587785) {
+                g2.draw(new Line(a, c));
+                g2.draw(new Line(c, d));
+            } else if (area == 0.951057) {
+                GridPoint i = a.getPointInDirection(c, 1);
+                g2.draw(new Line(a, c));
+                g2.draw(new Line(i, d));
+            }
+        }
+
+        // Amman, all sides equal
+        private void drawEquilateralAmmanTiling(Graphics2D g2,
+                                                GridPoint a, GridPoint b, GridPoint c, GridPoint d,
+                                                double area) {
+            g2.setColor(Color.BLACK);
+            if (area == 0.587785) {
+
+                GridPoint bc_i = b.getPointInDirection(c, 0.38197);
+
+                GridPoint i = a.getPointInDirection(bc_i, 0.52573);
+
+                g2.draw(new Line(a, i));
+                g2.draw(new Line(b, i));
+                g2.draw(new Line(c, i));
+
+            } else if (area == 0.951057) {
+
+                GridPoint ab = a.getPointInDirection(b, 0.417);
+                GridPoint cd = c.getPointInDirection(d, 0.417);
+
+                GridPoint ab_i = ab.getPointInDirection(cd, 0.182);
+                GridPoint cd_i = cd.getPointInDirection(ab, 0.182);
+
+                g2.draw(new Line(a, ab_i));
+                g2.draw(new Line(ab_i, b));
+                g2.draw(new Line(ab_i, cd_i));
+                g2.draw(new Line(cd_i, c));
+                g2.draw(new Line(cd_i, d));
+            }
+        }
+/*
+    // inner point is on the center of the side of the thin rhombus
+        private void drawA1Tiling(Graphics2D g2,
+                                  GridPoint a, GridPoint b, GridPoint c, GridPoint d,
+                                  double area) {
+            g2.setColor(Color.BLACK);
+            if (area == 0.587785) {
+
+                g2.draw(new Line(a, b));
+                // extra line for the reversed tiling
+                g2.draw(new Line(a, d));
+
+                GridPoint abCenter = a.getCenter(b);
+                g2.draw(new Line(c, abCenter));
+
+            } else if (area == 0.951057) {
+
+                GridPoint abCenter = a.getCenter(b);
+                GridPoint cdCenter = c.getCenter(d);
+
+                GridPoint i = abCenter.getPointInDirection(cdCenter, 0.69098);
+
+                g2.draw(new Line(abCenter.x(), i));
+                g2.draw(new Line(i, c));
+                g2.draw(new Line(i, d));
+
+                g2.draw(new Line(a, b));
+            }
+        }
+*/
 
         private void drawMyTiling(Graphics2D g2,
                                   GridPoint a, GridPoint b, GridPoint c, GridPoint d,
                                   double area) {
             g2.setColor(Color.BLACK);
             if (area == 0.587785) {
-                Line2D diagonal =
-                        new Line2D.Double(a.x(), a.y(), c.x(), c.y());
+                GridPoint cb_i = c.getPointInDirection(b, 0.38197);
+                g2.draw(new Line(a, cb_i));
+
+            } else if (area == 0.951057) {
+
+                GridPoint cd_i = c.getPointInDirection(d, 0.61803);
+                GridPoint i = c.getPointInDirection(a, 1);
+
+                g2.draw(new Line(c, b));
+                g2.draw(new Line(c, d));
+                g2.draw(new Line(b, i));
+                g2.draw(new Line(cd_i, i));
+                g2.draw(new Line(i, a));
+            }
+        }
+
+
+/*
+        // the initial version of my tiling, bigger tiles
+        private void drawMyTiling(Graphics2D g2,
+                                  GridPoint a, GridPoint b, GridPoint c, GridPoint d,
+                                  double area) {
+            g2.setColor(Color.BLACK);
+            if (area == 0.587785) {
+                Line diagonal =
+                        new Line(a, c);
                 g2.draw(diagonal);
             } else if (area == 0.951057) {
-                Line2D ab = new Line2D.Double(a.x(), a.y(), b.x(), b.y());
+                Line ab = new Line(a, b);
                 g2.draw(ab);
-                Line2D bc = new Line2D.Double(b.x(), b.y(), c.x(), c.y());
+                Line bc = new Line(b, c);
                 g2.draw(bc);
             }
         }
+*/
 
         private void drawCromwellTrapezium(Graphics2D g2,
                                            GridPoint a, GridPoint b, GridPoint c, GridPoint d,
                                            double area) {
             g2.setColor(Color.BLACK);
             if (area == 0.587785) {
-                Line2D diagonal =
-                        new Line2D.Double(a.x(), a.y(), c.x(), c.y());
+                Line diagonal =
+                        new Line(a, c);
                 g2.draw(diagonal);
 
-                Line2D lineCD =
-                        new Line2D.Double(c.x(), c.y(), d.x(), d.y());
+                Line lineCD =
+                        new Line(c, d);
                 g2.draw(lineCD);
-                Line2D lineDB =
-                        new Line2D.Double(c.x(), c.y(), b.x(), b.y());
+                Line lineDB =
+                        new Line(c, b);
                 g2.draw(lineDB);
             } else if (area == 0.951057) {
 
                 GridPoint i = c.getPointInDirection(a, 1);
 
-                Line2D cb = new Line2D.Double(c.x(), c.y(), b.x(), b.y());
+                Line cb = new Line(c, b);
                 g2.draw(cb);
 
-                Line2D cd = new Line2D.Double(c.x(), c.y(), d.x(), d.y());
+                Line cd = new Line(c, d);
                 g2.draw(cd);
 
-                Line2D lineIB = new Line2D.Double(b.x(), b.y(), i.x(), i.y());
+                Line lineIB = new Line(b, i);
                 g2.draw(lineIB);
 
-                Line2D lineID = new Line2D.Double(d.x(), d.y(), i.x(), i.y());
+                Line lineID = new Line(d, i);
                 g2.draw(lineID);
 
-                Line2D lineIA = new Line2D.Double(a.x(), a.y(), i.x(), i.y());
+                Line lineIA = new Line(a, i);
                 g2.draw(lineIA);
             }
         }
@@ -394,8 +539,8 @@ public class MultigridFrame extends JFrame {
 
         private void drawRhombi(Graphics2D g2,
                                 GridPoint a, GridPoint b, GridPoint c, GridPoint d,
-                                double area) {
-            g2.setColor(Color.BLACK);
+                                Color color) {
+            g2.setColor(color);
             g2.draw(getPath(a, b, c, d));
         }
 
@@ -405,30 +550,30 @@ public class MultigridFrame extends JFrame {
             g2.setColor(Color.BLACK);
 
             if (area == 0.587785) {
-                Line2D diagonal = new Line2D.Double(a.x(), a.y(), c.x(), c.y());
+                Line diagonal = new Line(a, c);
                 g2.draw(diagonal);
 
-                Line2D lineAB = new Line2D.Double(a.x(), a.y(), b.x(), b.y());
+                Line lineAB = new Line(a, b);
                 g2.draw(lineAB);
 
-                Line2D lineAD = new Line2D.Double(a.x(), a.y(), d.x(), d.y());
+                Line lineAD = new Line(a, d);
                 g2.draw(lineAD);
             } else if (area == 0.951057) {
                 GridPoint i = c.getPointInDirection(a, 1);
 
-                Line2D innerLine = new Line2D.Double(c.x(), c.y(), i.x(), i.y());
+                Line innerLine = new Line(c, i);
                 g2.draw(innerLine);
 
-                Line2D lineIB = new Line2D.Double(b.x(), b.y(), i.x(), i.y());
+                Line lineIB = new Line(b, i);
                 g2.draw(lineIB);
 
-                Line2D lineID = new Line2D.Double(d.x(), d.y(), i.x(), i.y());
+                Line lineID = new Line(d, i);
                 g2.draw(lineID);
 
-                Line2D lineAB = new Line2D.Double(a.x(), a.y(), b.x(), b.y());
+                Line lineAB = new Line(a, b);
                 g2.draw(lineAB);
 
-                Line2D lineAD = new Line2D.Double(a.x(), a.y(), d.x(), d.y());
+                Line lineAD = new Line(a, d);
                 g2.draw(lineAD);
             } else {
                 throw new AssertionError("Unexpected tile's area: " + area);
@@ -636,6 +781,12 @@ public class MultigridFrame extends JFrame {
 
         private void drawPoint(Graphics2D g2, GridPoint point) {
             fillCircle(g2, point.x(), point.y(), .05);
+        }
+    }
+
+    static class Line extends Line2D.Double {
+        public Line(GridPoint a, GridPoint b) {
+            super(a.x(), a.y(), b.x(), b.y());
         }
     }
 }
