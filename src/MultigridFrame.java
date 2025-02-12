@@ -306,20 +306,23 @@ public class MultigridFrame extends JFrame {
 
             List<GridTile> tileList = multigrid.getTileList();
 
-            if (showSourceTiling) {
-                for (int i = 0; i < tileList.size(); i++) {
-                    GridTile tile = tileList.get(i);
+            if (showSourceTiling || fillRhombi) {
+                for (GridTile tile : tileList) {
                     List<GridPoint> vertextList = tile.getVertexList();
 
                     GridPoint a = vertextList.get(reverseRhombi ? 2 : 0);
                     GridPoint b = vertextList.get(reverseRhombi ? 1 : 3);
                     GridPoint c = vertextList.get(reverseRhombi ? 0 : 2);
                     GridPoint d = vertextList.get(reverseRhombi ? 3 : 1);
-                    drawRhombi(g2, a, b, c, d, Color.ORANGE);
+                    if (fillRhombi) {
+                        fillRhombi(g2, a, b, c, d, tile.getArea());
+                    }
+                    if (showSourceTiling) {
+                        drawRhombi(g2, a, b, c, d, Color.ORANGE);
+                    }
                 }
             }
-            for (int i = 0; i < tileList.size(); i++) {
-                GridTile tile = tileList.get(i);
+            for (GridTile tile : tileList) {
                 List<GridPoint> vertextList = tile.getVertexList();
 
                 GridPoint a = vertextList.get(reverseRhombi ? 2 : 0);
@@ -328,10 +331,6 @@ public class MultigridFrame extends JFrame {
                 GridPoint d = vertextList.get(reverseRhombi ? 3 : 1);
 
                 double area = tile.getArea();
-
-                if (fillRhombi) {
-                    fillRhombi(g2, a, b, c, d, area);
-                }
 
                 if (drawRhombi) {
                     drawRhombi(g2, a, b, c, d, Color.BLACK);
@@ -528,6 +527,13 @@ public class MultigridFrame extends JFrame {
             return path;
         }
 
+        private void drawRhombi(Graphics2D g2,
+                                GridPoint a, GridPoint b, GridPoint c, GridPoint d,
+                                Color color) {
+            g2.setColor(color);
+            g2.draw(getPath(a, b, c, d));
+        }
+
         private void fillRhombi(Graphics2D g2,
                                 GridPoint a, GridPoint b, GridPoint c, GridPoint d,
                                 double area) {
@@ -535,13 +541,6 @@ public class MultigridFrame extends JFrame {
             g2.setColor(getColorList().get(colorIndex));
             Path2D path = getPath(a, b, c, d);
             g2.fill(path);
-        }
-
-        private void drawRhombi(Graphics2D g2,
-                                GridPoint a, GridPoint b, GridPoint c, GridPoint d,
-                                Color color) {
-            g2.setColor(color);
-            g2.draw(getPath(a, b, c, d));
         }
 
         private void drawKitesAndDarts(Graphics2D g2,
