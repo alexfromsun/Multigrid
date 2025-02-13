@@ -21,9 +21,9 @@ public class MultigridFrame extends JFrame {
     private Multigrid multigrid = new Multigrid(5, 2, .2, 0);
     private JButton zoomButton = new JButton("100%");
     private JLabel statusBar = new JLabel();
-    private boolean drawRhombi;
+    private boolean drawRhombi = true;
     private boolean showCromwell;
-    private boolean showMyTiling = true;
+    private boolean showMyTiling;
     private boolean showRibbons;
     private boolean showEquilateralAmman;
     private boolean fillRhombi;
@@ -146,6 +146,20 @@ public class MultigridFrame extends JFrame {
 
         toolBar.addSeparator();
 
+        JCheckBox reverseArrowsCheckbox = new JCheckBox("Reverse", reverseRhombi);
+        toolBar.add(reverseArrowsCheckbox);
+        reverseArrowsCheckbox.addChangeListener(e -> {
+            reverseRhombi = reverseArrowsCheckbox.isSelected();
+            repaint();
+        });
+
+        JCheckBox sourceTilingCheckbox = new JCheckBox("Source tiling", showSourceTiling);
+        toolBar.add(sourceTilingCheckbox);
+        sourceTilingCheckbox.addChangeListener(e -> {
+            showSourceTiling = sourceTilingCheckbox.isSelected();
+            repaint();
+        });
+
         JCheckBox fillRhombiCheckbox = new JCheckBox("Color", fillRhombi);
         toolBar.add(fillRhombiCheckbox);
         fillRhombiCheckbox.addActionListener(e -> {
@@ -158,20 +172,6 @@ public class MultigridFrame extends JFrame {
         toolBar.add(arrowsCheckbox);
         arrowsCheckbox.addActionListener(e -> {
             showArrows = arrowsCheckbox.isSelected();
-            repaint();
-        });
-
-        JCheckBox reverseArrowsCheckbox = new JCheckBox("Reverse", reverseRhombi);
-        toolBar.add(reverseArrowsCheckbox);
-        reverseArrowsCheckbox.addChangeListener(e -> {
-            reverseRhombi = reverseArrowsCheckbox.isSelected();
-            repaint();
-        });
-
-        JCheckBox sourceTilingCheckbox = new JCheckBox("Source tiling", showSourceTiling);
-        toolBar.add(sourceTilingCheckbox);
-        sourceTilingCheckbox.addChangeListener(e -> {
-            showSourceTiling = sourceTilingCheckbox.isSelected();
             repaint();
         });
 
@@ -486,34 +486,18 @@ public class MultigridFrame extends JFrame {
                                            double area) {
             g2.setColor(Color.BLACK);
             if (area == 0.587785) {
-                Line diagonal =
-                        new Line(a, c);
-                g2.draw(diagonal);
+                // diagonal
+                g2.draw(new Line(a, c));
 
-                Line lineCD =
-                        new Line(c, d);
-                g2.draw(lineCD);
-                Line lineDB =
-                        new Line(c, b);
-                g2.draw(lineDB);
+                g2.draw(new Line(c, d));
+                g2.draw(new Line(c, b));
             } else if (area == 0.951057) {
-
                 GridPoint i = c.getPointInDirection(a, 1);
-
-                Line cb = new Line(c, b);
-                g2.draw(cb);
-
-                Line cd = new Line(c, d);
-                g2.draw(cd);
-
-                Line lineIB = new Line(b, i);
-                g2.draw(lineIB);
-
-                Line lineID = new Line(d, i);
-                g2.draw(lineID);
-
-                Line lineIA = new Line(a, i);
-                g2.draw(lineIA);
+                g2.draw(new Line(c, b));
+                g2.draw(new Line(c, d));
+                g2.draw(new Line(b, i));
+                g2.draw(new Line(d, i));
+                g2.draw(new Line(a, i));
             }
         }
 
@@ -549,31 +533,21 @@ public class MultigridFrame extends JFrame {
             g2.setColor(Color.BLACK);
 
             if (area == 0.587785) {
-                Line diagonal = new Line(a, c);
-                g2.draw(diagonal);
+                // diagonal
+                g2.draw(new Line(a, c));
 
-                Line lineAB = new Line(a, b);
-                g2.draw(lineAB);
-
-                Line lineAD = new Line(a, d);
-                g2.draw(lineAD);
+                g2.draw(new Line(a, b));
+                g2.draw(new Line(a, d));
             } else if (area == 0.951057) {
                 GridPoint i = c.getPointInDirection(a, 1);
 
-                Line innerLine = new Line(c, i);
-                g2.draw(innerLine);
+                // inner lines
+                g2.draw(new Line(c, i));
+                g2.draw(new Line(b, i));
+                g2.draw(new Line(d, i));
 
-                Line lineIB = new Line(b, i);
-                g2.draw(lineIB);
-
-                Line lineID = new Line(d, i);
-                g2.draw(lineID);
-
-                Line lineAB = new Line(a, b);
-                g2.draw(lineAB);
-
-                Line lineAD = new Line(a, d);
-                g2.draw(lineAD);
+                g2.draw(new Line(a, b));
+                g2.draw(new Line(a, d));
             } else {
                 throw new AssertionError("Unexpected tile's area: " + area);
             }
