@@ -6,30 +6,32 @@ import tilings.multigrid.GridTile;
 import java.awt.*;
 import java.awt.geom.Path2D;
 
-public class DrawPenroseArrowsPainter extends RhombusPainter {
+public class DrawPenroseArrowsPainter extends PenrosePainter {
 
     @Override
     public void paintRhombus(Graphics2D g2, GridTile rhombus, GridPoint a, GridPoint b, GridPoint c, GridPoint d) {
-        g2.setColor(Color.BLACK);
-
-        double area = rhombus.getArea();
         Shape clip = g2.getClip();
         g2.clip(getPath(a, b, c, d));
-
-        if (area == 0.587785) {
-            drawDoubleArrow(g2, b, a);
-            drawDoubleArrow(g2, d, a);
-            drawArrow(g2, c, b);
-            drawArrow(g2, c, d);
-        } else if (area == 0.951057) {
-            drawDoubleArrow(g2, b, a);
-            drawDoubleArrow(g2, d, a);
-            drawArrow(g2, b, c);
-            drawArrow(g2, d, c);
-        }
+        super.paintRhombus(g2, rhombus, a, b, c, d);
         g2.setClip(clip);
     }
 
+    @Override
+    void paintThinRhombus(Graphics2D g2, GridPoint a, GridPoint b, GridPoint c, GridPoint d) {
+        drawDoubleArrow(g2, b, a);
+        drawDoubleArrow(g2, d, a);
+        drawArrow(g2, c, b);
+        drawArrow(g2, c, d);
+
+    }
+
+    @Override
+    void paintThickRhombus(Graphics2D g2, GridPoint a, GridPoint b, GridPoint c, GridPoint d) {
+        drawDoubleArrow(g2, b, a);
+        drawDoubleArrow(g2, d, a);
+        drawArrow(g2, b, c);
+        drawArrow(g2, d, c);
+    }
 
     private void drawArrow(Graphics2D g2, GridPoint p1, GridPoint p2) {
         fillTriangle(g2, p1, p2, .65);
