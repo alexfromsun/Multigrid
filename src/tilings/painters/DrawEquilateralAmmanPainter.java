@@ -5,6 +5,7 @@ import tilings.multigrid.*;
 import java.awt.*;
 
 public class DrawEquilateralAmmanPainter extends PenrosePainter {
+
     @Override
     void paintThinRhombus(Graphics2D g2, GridPoint a, GridPoint b, GridPoint c, GridPoint d) {
         GridPoint bc_i = b.getPointInDirection(c, 0.38197);
@@ -29,5 +30,10 @@ public class DrawEquilateralAmmanPainter extends PenrosePainter {
         g2.draw(new Line(ab_i, cd_i));
         g2.draw(new Line(cd_i, c));
         g2.draw(new Line(cd_i, d));
+    }
+
+    @Override
+    public String getName() {
+        return "Equilateral Amman";
     }
 }

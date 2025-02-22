@@ -8,6 +8,12 @@ import java.awt.*;
 public class DrawMyTilingPainter extends PenrosePainter {
 
     @Override
+    public void paintRhombus(Graphics2D g2, GridTile rhombus, GridPoint a, GridPoint b, GridPoint c, GridPoint d) {
+        g2.setColor(Color.BLACK);
+        super.paintRhombus(g2, rhombus, a, b, c, d);
+    }
+
+    @Override
     void paintThinRhombus(Graphics2D g2, GridPoint a, GridPoint b, GridPoint c, GridPoint d) {
         GridPoint cb_i = c.getPointInDirection(b, 0.38197);
         g2.draw(new Line(a, cb_i));
@@ -23,6 +29,11 @@ public class DrawMyTilingPainter extends PenrosePainter {
         g2.draw(new Line(b, i));
         g2.draw(new Line(cd_i, i));
         g2.draw(new Line(i, a));
+    }
+
+    @Override
+    public String getName() {
+        return "My tiling";
     }
 
     /*

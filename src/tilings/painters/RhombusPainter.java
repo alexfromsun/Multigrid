@@ -9,6 +9,16 @@ import java.util.List;
 
 public abstract class RhombusPainter {
 
+    private boolean enabled = true;
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
     public final void paint(Graphics2D g2, GridTile rhombus, boolean isReversed) {
         List<GridPoint> vertexList = rhombus.getVertexList();
         GridPoint a = vertexList.get(isReversed ? 2 : 0);
@@ -38,4 +48,6 @@ public abstract class RhombusPainter {
             super(a.x(), a.y(), b.x(), b.y());
         }
     }
+
+    abstract public String getName();
 }

@@ -82,4 +82,9 @@ public class DrawPenroseArrowsPainter extends PenrosePainter {
 
         g2.fill(triangle);
     }
+
+    @Override
+    public String getName() {
+        return "Arrows for Penrose tiling";
+    }
 }

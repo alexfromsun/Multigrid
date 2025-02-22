@@ -19,4 +19,9 @@ public class DrawRibbonsPainter extends PenrosePainter {
         g2.draw(new Line(a, c));
         g2.draw(new Line(i, d));
     }
+
+    @Override
+    public String getName() {
+        return "Ribbons";
+    }
 }

@@ -23,6 +23,10 @@ public class DrawCromwellTrapeziumPainter extends PenrosePainter {
         g2.draw(new Line(b, i));
         g2.draw(new Line(d, i));
         g2.draw(new Line(a, i));
+    }
 
+    @Override
+    public String getName() {
+        return "Cromwell";
     }
 }

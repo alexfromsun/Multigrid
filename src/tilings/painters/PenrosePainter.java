@@ -6,6 +6,7 @@ import tilings.multigrid.GridTile;
 import java.awt.*;
 
 abstract public class PenrosePainter extends RhombusPainter {
+
     @Override
     public void paintRhombus(Graphics2D g2, GridTile rhombus, GridPoint a, GridPoint b, GridPoint c, GridPoint d) {
         g2.setColor(Color.BLACK);

@@ -29,5 +29,10 @@ public class DrawKitesAndDartsPainter extends PenrosePainter {
         g2.draw(new Line(a, b));
         g2.draw(new Line(a, d));
     }
+
+    @Override
+    public String getName() {
+        return "Kites and Darts";
+    }
 }
 
