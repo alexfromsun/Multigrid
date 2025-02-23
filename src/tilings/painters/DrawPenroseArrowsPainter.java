@@ -85,6 +85,6 @@ public class DrawPenroseArrowsPainter extends PenrosePainter {
 
     @Override
     public String getName() {
-        return "Arrows for Penrose tiling";
+        return "Arrows";
     }
 }

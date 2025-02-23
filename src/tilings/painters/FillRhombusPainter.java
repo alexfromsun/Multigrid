@@ -8,10 +8,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FillRhombusPainter extends RhombusPainter {
-    private final List<Double> tileAreaList;
+    private List<Double> tileAreaList;
     private List<Color> colorList;
 
     public FillRhombusPainter(List<Double> tileAreaList) {
+        setTileAreaList(tileAreaList);
+    }
+
+    public void setTileAreaList(List<Double> tileAreaList) {
         this.tileAreaList = tileAreaList;
         colorList = new ArrayList<>();
         // Distribute the hue values evenly around the color wheel

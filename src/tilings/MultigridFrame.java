@@ -4,7 +4,6 @@ import tilings.multigrid.*;
 import tilings.painters.*;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ActionListener;
@@ -12,6 +11,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.geom.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -23,60 +23,42 @@ public class MultigridFrame extends JFrame {
     }
 
     private final JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-    private final JToolBar toolBar = new JToolBar();
+    private final JToolBar mainToolBar = new JToolBar();
     private Multigrid multigrid = new Multigrid(5, 2, .2, 0);
-    private JButton zoomButton = new JButton("100%");
-    private JLabel statusBar = new JLabel();
+    private final JButton zoomButton = new JButton("100%");
+    private final JLabel statusBar = new JLabel();
+    private JToolBar verticalToolBar = new JToolBar(JToolBar.VERTICAL);
+    private HashMap<RhombusPainter, AbstractButton> verticalToolBarComponents = new HashMap<>();
 
-    private List<RhombusPainter> beforePainterList;
-    private List<RhombusPainter> afterPainterList;
-    private List<RhombusPainter> mainPainterList;
+    private FillRhombusPainter colorPainter = new FillRhombusPainter(multigrid.getTileAreaList());
+    private List<RhombusPainter> beforePainterList = new ArrayList<>();
+    private List<RhombusPainter> afterPainterList = new ArrayList<>();
+    private List<RhombusPainter> mainPainterList = new ArrayList<>();
     private boolean reverseRhombi;
 
     public MultigridFrame() {
         setTitle("Collider frame");
         setExtendedState(JFrame.MAXIMIZED_BOTH);
 
-        beforePainterList = new ArrayList<>();
-        beforePainterList.add(new FillRhombusPainter(multigrid.getTileAreaList()));
-        beforePainterList.add(new DrawRhombusPainter(Color.ORANGE, "Initial tiling"));
-
-        afterPainterList = new ArrayList<>();
-        afterPainterList.add(new DrawPenroseArrowsPainter());
-
-        mainPainterList = new ArrayList<>();
-        mainPainterList.add(new DrawRhombusPainter(Color.BLACK));
-        mainPainterList.add(new DrawKitesAndDartsPainter());
-        mainPainterList.add(new DrawCromwellTrapeziumPainter());
-        mainPainterList.add(new DrawMyTilingPainter());
-        mainPainterList.add(new DrawRibbonsPainter());
-        mainPainterList.add(new DrawEquilateralAmmanPainter());
-
-        afterPainterList = new ArrayList<>();
-        afterPainterList.add(new DrawPenroseArrowsPainter());
-
-        for (RhombusPainter painter : mainPainterList) {
-            tabbedPane.add(painter.getName(), new PainterScrollPane(new ColliderPanel(painter)));
-        }
-
+        tabbedPane.addChangeListener(e -> revalidateTabbedPane());
         add(tabbedPane);
 
-        toolBar.add(new JLabel("Symmetry "));
+        mainToolBar.add(new JLabel("Symmetry "));
         SpinnerNumberModel symmetryModel = new SpinnerNumberModel(multigrid.getSymmetry(), 3, 15, 1);
         final JSpinner symmetrySpinner = new JSpinner(symmetryModel);
         symmetrySpinner.setMaximumSize(symmetrySpinner.getPreferredSize());
-        toolBar.add(symmetrySpinner);
-        toolBar.addSeparator();
+        mainToolBar.add(symmetrySpinner);
+        mainToolBar.addSeparator();
 
-        toolBar.add(new JLabel("Radius "));
+        mainToolBar.add(new JLabel("Radius "));
 
         SpinnerNumberModel radiusModel = new SpinnerNumberModel(multigrid.getGridRadius(), 0, 10, 1);
         JSpinner radiusSpinner = new JSpinner(radiusModel);
         radiusSpinner.setMaximumSize(radiusSpinner.getPreferredSize());
-        toolBar.add(radiusSpinner);
-        toolBar.addSeparator();
+        mainToolBar.add(radiusSpinner);
+        mainToolBar.addSeparator();
 
-        toolBar.add(new JLabel("Offset "));
+        mainToolBar.add(new JLabel("Offset "));
 
         SpinnerNumberModel offsetModel = new SpinnerNumberModel(multigrid.getOffset(), -3, 3, 0.01);
         JSpinner offsetSpinner = new JSpinner(offsetModel);
@@ -86,13 +68,13 @@ public class MultigridFrame extends JFrame {
 
         offsetSpinner.setMaximumSize(offsetSpinner.getPreferredSize());
 
-        toolBar.add(offsetSpinner);
-        toolBar.addSeparator();
+        mainToolBar.add(offsetSpinner);
+        mainToolBar.addSeparator();
 
         JButton insetButton = new JButton("Inset ");
         insetButton.setToolTipText("Set inset to 0");
         insetButton.setFocusable(false);
-        toolBar.add(insetButton);
+        mainToolBar.add(insetButton);
 
         SpinnerNumberModel insetModel = new SpinnerNumberModel(multigrid.getGridInset(), 0, .99, 0.02);
         JSpinner insetSpinner = new JSpinner(insetModel);
@@ -106,39 +88,17 @@ public class MultigridFrame extends JFrame {
             insetSpinner.setValue(0.0);
         });
 
-        toolBar.add(insetSpinner);
+        mainToolBar.add(insetSpinner);
 
-        toolBar.addSeparator();
+        mainToolBar.addSeparator();
 
         JCheckBox reverseCheckbox = new JCheckBox("Reverse rhombi");
         reverseCheckbox.addChangeListener(e -> {
             reverseRhombi = reverseCheckbox.isSelected();
             tabbedPane.getSelectedComponent().repaint();
         });
-        toolBar.add(reverseCheckbox);
-
-        toolBar.addSeparator();
-
-        for (RhombusPainter painter : beforePainterList) {
-            painter.setEnabled(false);
-            JCheckBox checkbox = new JCheckBox(painter.getName());
-            toolBar.add(checkbox);
-            checkbox.addChangeListener(e -> {
-                painter.setEnabled(checkbox.isSelected());
-                tabbedPane.getSelectedComponent().repaint();
-            });
-        }
-        toolBar.addSeparator();
-
-        for (RhombusPainter afterPainter : afterPainterList) {
-            afterPainter.setEnabled(false);
-            JCheckBox checkbox = new JCheckBox(afterPainter.getName());
-            toolBar.add(checkbox);
-            checkbox.addChangeListener(e -> {
-                afterPainter.setEnabled(checkbox.isSelected());
-                tabbedPane.getSelectedComponent().repaint();
-            });
-        }
+        mainToolBar.add(reverseCheckbox);
+        mainToolBar.addSeparator();
 
         ChangeListener changeListener = e -> {
             int symmetry = (int) symmetrySpinner.getValue();
@@ -146,9 +106,9 @@ public class MultigridFrame extends JFrame {
             double offset = (double) offsetSpinner.getValue();
             double gridInset = (double) insetSpinner.getValue();
             multigrid = new Multigrid(symmetry, radius, offset, gridInset);
+            colorPainter.setTileAreaList(multigrid.getTileAreaList());
             updateStatusBar();
-            tabbedPane.getSelectedComponent().revalidate();
-            tabbedPane.getSelectedComponent().repaint();
+            updateSettings();
         };
 
         symmetrySpinner.addChangeListener(changeListener);
@@ -156,9 +116,9 @@ public class MultigridFrame extends JFrame {
         offsetSpinner.addChangeListener(changeListener);
         insetSpinner.addChangeListener(changeListener);
 
-        toolBar.add(Box.createHorizontalGlue());
+        mainToolBar.add(Box.createHorizontalGlue());
 
-        toolBar.add(zoomButton);
+        mainToolBar.add(zoomButton);
 
         // todo: fix the zoom button
         zoomButton.addActionListener(e ->
@@ -166,14 +126,14 @@ public class MultigridFrame extends JFrame {
 //            colliderPanel.setZoom(1);
 //            zoomButton.setText((int) (colliderPanel.getZoom() * 100) + "%");
         });
-        toolBar.addSeparator();
+        mainToolBar.addSeparator();
         JButton plusButton = new JButton("+");
         plusButton.setToolTipText("Ctrl +");
 
-        toolBar.add(plusButton);
+        mainToolBar.add(plusButton);
         JButton minusButton = new JButton("-");
         minusButton.setToolTipText("Ctrl -");
-        toolBar.add(minusButton);
+        mainToolBar.add(minusButton);
 
         ActionListener zoomAction = e -> {
             int direction = e.getSource() == plusButton ? -1 : 1;
@@ -184,18 +144,94 @@ public class MultigridFrame extends JFrame {
         minusButton.addActionListener(zoomAction);
         plusButton.addActionListener(zoomAction);
 
-        add(toolBar, BorderLayout.PAGE_START);
+        add(mainToolBar, BorderLayout.PAGE_START);
 
         add(statusBar, BorderLayout.PAGE_END);
 
+        createPainterLists();
+
+        verticalToolBar.addSeparator();
+
+        for (RhombusPainter beforePainter : beforePainterList) {
+            JCheckBox checkbox = new JCheckBox(beforePainter.getName());
+            verticalToolBar.add(checkbox);
+            checkbox.addChangeListener(e -> {
+                beforePainter.setEnabled(checkbox.isSelected());
+                tabbedPane.getSelectedComponent().repaint();
+            });
+            beforePainter.setEnabled(false);
+            verticalToolBarComponents.put(beforePainter, checkbox);
+        }
+
+        for (RhombusPainter afterPainter : afterPainterList) {
+            if (afterPainter.isSymmetrySupported(multigrid.getSymmetry())) {
+                JCheckBox checkbox = new JCheckBox(afterPainter.getName());
+                verticalToolBar.add(checkbox);
+                checkbox.addChangeListener(e -> {
+                    afterPainter.setEnabled(checkbox.isSelected());
+                    tabbedPane.getSelectedComponent().repaint();
+                });
+                afterPainter.setEnabled(false);
+                verticalToolBarComponents.put(afterPainter, checkbox);
+            }
+        }
+        add(verticalToolBar, BorderLayout.WEST);
+
         updateStatusBar();
+        updateSettings();
 
         SwingUtilities.invokeLater(() ->
         {
             setMinimumSize(new Dimension(800, 600));
             offsetSpinner.requestFocus();
         });
+    }
 
+    private void createPainterLists() {
+        beforePainterList.add(colorPainter);
+        colorPainter.setEnabled(false);
+        beforePainterList.add(new DrawRhombusPainter(Color.ORANGE, "Initial tiling"));
+        afterPainterList.add(new DrawPenroseArrowsPainter());
+        mainPainterList.add(new DrawRhombusPainter(Color.BLACK));
+        mainPainterList.add(new DrawKitesAndDartsPainter());
+        mainPainterList.add(new DrawCromwellTrapeziumPainter());
+        mainPainterList.add(new DrawRibbonsPainter());
+        mainPainterList.add(new DrawMyTilingPainter());
+        mainPainterList.add(new DrawEquilateralAmmanPainter());
+    }
+
+    private void updateSettings() {
+        for (RhombusPainter beforePainter : beforePainterList) {
+            boolean supported = beforePainter.isSymmetrySupported(multigrid.getSymmetry());
+            AbstractButton button = verticalToolBarComponents.get(beforePainter);
+            beforePainter.setEnabled(supported && button.isSelected());
+            button.setVisible(supported);
+        }
+
+        tabbedPane.removeAll();
+        for (RhombusPainter painter : mainPainterList) {
+            if (painter.isSymmetrySupported(multigrid.getSymmetry())) {
+                tabbedPane.add(painter.getName(), new PainterScrollPane(new ColliderPanel(painter)));
+            }
+        }
+
+        for (RhombusPainter afterPainter : afterPainterList) {
+            boolean supported = afterPainter.isSymmetrySupported(multigrid.getSymmetry());
+            AbstractButton button = verticalToolBarComponents.get(afterPainter);
+            afterPainter.setEnabled(supported && button.isSelected());
+            button.setVisible(supported);
+        }
+        verticalToolBar.revalidate();
+        verticalToolBar.repaint();
+    }
+
+    private void revalidateTabbedPane() {
+        JScrollPane scrollPane = (JScrollPane) tabbedPane.getSelectedComponent();
+        if (scrollPane != null) {
+            Component view = scrollPane.getViewport().getView();
+            view.revalidate();
+            view.repaint();
+        }
     }
 
     private void updateStatusBar() {
@@ -224,7 +260,9 @@ public class MultigridFrame extends JFrame {
         public String toString() {
             return "ScrollPane(colliderPanel)";
         }
-    };
+    }
+
+    ;
 
     private class ColliderPanel extends JPanel {
         private final AffineTransform transform = new AffineTransform();
@@ -232,6 +270,7 @@ public class MultigridFrame extends JFrame {
         private final List<Color> colorList = new ArrayList<>();
 
         private final RhombusPainter mainPainter;
+
         public ColliderPanel(RhombusPainter mainPainter) {
             this.mainPainter = mainPainter;
             //ToolTipManager.sharedInstance().registerComponent(this);
@@ -285,7 +324,7 @@ public class MultigridFrame extends JFrame {
 
 //            drawLines(g2);
 
-            if(beforePainterList != null && !beforePainterList.isEmpty()) {
+            if (beforePainterList != null && !beforePainterList.isEmpty()) {
                 for (GridTile tile : multigrid.getTileList()) {
                     for (RhombusPainter beforePainter : beforePainterList) {
                         if (beforePainter.isEnabled()) {

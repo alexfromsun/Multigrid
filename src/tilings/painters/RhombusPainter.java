@@ -19,6 +19,10 @@ public abstract class RhombusPainter {
         this.enabled = enabled;
     }
 
+    public boolean isSymmetrySupported(int symmetry) {
+        return true;
+    }
+
     public final void paint(Graphics2D g2, GridTile rhombus, boolean isReversed) {
         List<GridPoint> vertexList = rhombus.getVertexList();
         GridPoint a = vertexList.get(isReversed ? 2 : 0);
