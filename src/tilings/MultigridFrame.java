@@ -205,7 +205,7 @@ public class MultigridFrame extends JFrame {
         mainPainterList.add(new DrawRibbonsPainter());
         mainPainterList.add(new DrawMyTilingPainter());
         mainPainterList.add(new DrawEquilateralAmmanPainter());
-        mainPainterList.add(new BlueRed());
+        mainPainterList.add(new BlueRedPainter());
     }
 
     private void updateSettings() {

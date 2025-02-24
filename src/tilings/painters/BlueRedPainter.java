@@ -6,7 +6,7 @@ import tilings.multigrid.GridTile;
 import java.awt.*;
 import java.util.List;
 
-public class BlueRed extends DrawPenroseArrowsPainter {
+public class BlueRedPainter extends DrawPenroseArrowsPainter {
 
     @Override
     void paintThinRhombus(Graphics2D g2, GridTile rhombus, GridPoint a, GridPoint b, GridPoint c, GridPoint d) {
