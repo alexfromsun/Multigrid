@@ -7,7 +7,7 @@ import java.awt.*;
 public class DrawCromwellTrapeziumPainter extends PenrosePainter {
 
     @Override
-    void paintThinRhombus(Graphics2D g2, GridPoint a, GridPoint b, GridPoint c, GridPoint d) {
+    void paintThinRhombus(Graphics2D g2, GridTile rhombus, GridPoint a, GridPoint b, GridPoint c, GridPoint d) {
         // diagonal
         g2.draw(new Line(a, c));
 
@@ -16,7 +16,7 @@ public class DrawCromwellTrapeziumPainter extends PenrosePainter {
     }
 
     @Override
-    void paintThickRhombus(Graphics2D g2, GridPoint a, GridPoint b, GridPoint c, GridPoint d) {
+    void paintThickRhombus(Graphics2D g2, GridTile rhombus, GridPoint a, GridPoint b, GridPoint c, GridPoint d) {
         GridPoint i = c.getPointInDirection(a, 1);
         g2.draw(new Line(c, b));
         g2.draw(new Line(c, d));

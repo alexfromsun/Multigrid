@@ -23,7 +23,7 @@ public abstract class RhombusPainter {
         return true;
     }
 
-    public final void paint(Graphics2D g2, GridTile rhombus, boolean isReversed) {
+    public void paint(Graphics2D g2, GridTile rhombus, boolean isReversed) {
         List<GridPoint> vertexList = rhombus.getVertexList();
         GridPoint a = vertexList.get(isReversed ? 2 : 0);
         GridPoint b = vertexList.get(isReversed ? 1 : 3);

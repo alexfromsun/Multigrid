@@ -17,32 +17,31 @@ public class DrawPenroseArrowsPainter extends PenrosePainter {
     }
 
     @Override
-    void paintThinRhombus(Graphics2D g2, GridPoint a, GridPoint b, GridPoint c, GridPoint d) {
-        drawDoubleArrow(g2, b, a);
-        drawDoubleArrow(g2, d, a);
-        drawArrow(g2, c, b);
-        drawArrow(g2, c, d);
-
-    }
-
-    @Override
-    void paintThickRhombus(Graphics2D g2, GridPoint a, GridPoint b, GridPoint c, GridPoint d) {
+    void paintThinRhombus(Graphics2D g2, GridTile rhombus, GridPoint a, GridPoint b, GridPoint c, GridPoint d) {
         drawDoubleArrow(g2, b, a);
         drawDoubleArrow(g2, d, a);
         drawArrow(g2, b, c);
         drawArrow(g2, d, c);
     }
 
-    private void drawArrow(Graphics2D g2, GridPoint p1, GridPoint p2) {
+    @Override
+    void paintThickRhombus(Graphics2D g2, GridTile rhombus, GridPoint a, GridPoint b, GridPoint c, GridPoint d) {
+        drawDoubleArrow(g2, b, a);
+        drawDoubleArrow(g2, d, a);
+        drawArrow(g2, c, b);
+        drawArrow(g2, c, d);
+    }
+
+    protected void drawArrow(Graphics2D g2, GridPoint p1, GridPoint p2) {
         fillTriangle(g2, p1, p2, .65);
     }
 
-    private void drawDoubleArrow(Graphics2D g2, GridPoint p1, GridPoint p2) {
+    protected void drawDoubleArrow(Graphics2D g2, GridPoint p1, GridPoint p2) {
         fillTriangle(g2, p1, p2, .5);
         fillTriangle(g2, p1, p2, .8);
     }
 
-    public void fillTriangle(Graphics2D g2,
+    protected void fillTriangle(Graphics2D g2,
                              GridPoint a,
                              GridPoint b,
                              double t) {
@@ -85,6 +84,6 @@ public class DrawPenroseArrowsPainter extends PenrosePainter {
 
     @Override
     public String getName() {
-        return "Arrows";
+        return "Penrose Arrows";
     }
 }

@@ -14,13 +14,13 @@ public class DrawMyTilingPainter extends PenrosePainter {
     }
 
     @Override
-    void paintThinRhombus(Graphics2D g2, GridPoint a, GridPoint b, GridPoint c, GridPoint d) {
+    void paintThinRhombus(Graphics2D g2, GridTile rhombus, GridPoint a, GridPoint b, GridPoint c, GridPoint d) {
         GridPoint cb_i = c.getPointInDirection(b, 0.38197);
         g2.draw(new Line(a, cb_i));
     }
 
     @Override
-    void paintThickRhombus(Graphics2D g2, GridPoint a, GridPoint b, GridPoint c, GridPoint d) {
+    void paintThickRhombus(Graphics2D g2, GridTile rhombus, GridPoint a, GridPoint b, GridPoint c, GridPoint d) {
         GridPoint cd_i = c.getPointInDirection(d, 0.61803);
         GridPoint i = c.getPointInDirection(a, 1);
 

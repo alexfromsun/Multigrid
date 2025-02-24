@@ -183,13 +183,9 @@ public class Multigrid {
 
             if (isRhombus(dualList)) {
 
-                GridTile tile = new GridTile(intersection, dualList);
+                GridTile tile = new GridTile(dualList, dualIndexList);
                 tileList.add(tile);
                 tileAreaSet.add(tile.getArea());
-
-                if (getSymmetry() == 5) {
-                    tile.setVertexIndices(dualIndexList);
-                }
 
                 for (GridPoint point : dualList) {
                     if (point.x() > tilingRadius) {
