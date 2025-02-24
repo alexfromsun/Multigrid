@@ -241,8 +241,10 @@ public class MultigridFrame extends JFrame {
 
     private ColliderPanel getSelectedPanel() {
         JScrollPane scrollPane = (JScrollPane) tabbedPane.getSelectedComponent();
-        Component view = scrollPane.getViewport().getView();
-        return (ColliderPanel) view;
+        if (scrollPane != null) {
+            return (ColliderPanel) scrollPane.getViewport().getView();
+        }
+        return null;
     }
 
     private void updateStatusBar() {
