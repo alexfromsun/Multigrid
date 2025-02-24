@@ -19,6 +19,7 @@ public class Multigrid {
 
     private List<GridTile> tileList;
     private List<Double> tileAreaList;
+    private Set<List<Integer>> vertexIndexSet;
 
     private double tilingRadius;
     private double gridInset;
@@ -100,6 +101,7 @@ public class Multigrid {
     private void calculateTiles() {
         tileList = new ArrayList<>();
         Set<Double> tileAreaSet = new TreeSet<>();
+        vertexIndexSet = new HashSet<>();
 
         for (GridPoint intersection : getIntersections()) {
 
@@ -147,11 +149,6 @@ public class Multigrid {
             List<Integer> dualIndexList = new ArrayList<>();
             double meanX = 0, meanY = 0;
 
-//          x=-0.24721359549995792, y=2.918393927182259E-17
-            if (intersection.x() == -0.24721359549995792 && intersection.y() == 2.918393927182259E-17) {
-//                System.out.println();
-            }
-
             for (GridPoint median : medianList) {
                 double xd = 0, yd = 0;
 
@@ -186,6 +183,9 @@ public class Multigrid {
                 GridTile tile = new GridTile(dualList, dualIndexList);
                 tileList.add(tile);
                 tileAreaSet.add(tile.getArea());
+
+                dualIndexList.sort(null);
+                vertexIndexSet.add(dualIndexList);
 
                 for (GridPoint point : dualList) {
                     if (point.x() > tilingRadius) {
@@ -238,6 +238,10 @@ public class Multigrid {
 
     public List<Double> getTileAreaList() {
         return tileAreaList;
+    }
+
+    public Set<List<Integer>> getVertexIndexSet() {
+        return vertexIndexSet;
     }
 
     public double getTilingRadius() {

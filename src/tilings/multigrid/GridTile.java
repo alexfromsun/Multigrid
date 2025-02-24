@@ -45,8 +45,8 @@ public class GridTile {
 
         GridPoint maxIndexVertex = vertexList.get(indexList.indexOf(max));
 
-        while (maxIndexVertex != vertexList.get(0)) {
-            vertexList.add(vertexList.remove(0));
+        while (maxIndexVertex != vertexList.getFirst()) {
+            vertexList.add(vertexList.removeFirst());
         }
     }
 

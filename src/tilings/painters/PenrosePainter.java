@@ -29,25 +29,13 @@ abstract public class PenrosePainter extends RhombusPainter {
 
     protected boolean isMinIndexDirection(GridTile rhombus) {
         List<GridPoint> vertexList = rhombus.getVertexList();
-        int min = rhombus.getVertexIndex(vertexList.get(2));
         int max = rhombus.getVertexIndex(vertexList.get(0));
-        if (min == 0 && max == 2) {
-// max
-            return false;
-        } else if (min == 0 && max == 3) {
-// min
-            return true;
-        } else if (min == 1 && max == 3) {
-// min
-            return true;
-        } else if (min == 2 && max == 4) {
-// min
-            return true;
-        } else if (min == 1 && max == 4) {
-// max
-            return false;
-        }
-        throw new AssertionError("Unexpected pair, min = " + min + ", max = " + max);
+        int min = rhombus.getVertexIndex(vertexList.get(2));
+        // 0.2 - 0/3 (0) 2/4 (2) type 1
+        // 0.4 - 0/3 (3) 1/4 (1) type 2 (reversed)
+        // 0.6 - 0/2 (2) 1/4 (4) type 2
+        // 0.8 - 0/2 (0) 1/3 (3) type 1 (reversed)
+        return !(min == 0 && max == 2) && !(min == 1 && max == 4);
     }
 
     @Override

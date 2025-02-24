@@ -44,6 +44,15 @@ public abstract class RhombusPainter {
         return path;
     }
 
+    public Path2D getPath(GridPoint a, GridPoint b, GridPoint c) {
+        Path2D.Double path = new Path2D.Double();
+        path.moveTo(a.x(), a.y());
+        path.lineTo(b.x(), b.y());
+        path.lineTo(c.x(), c.y());
+        path.closePath();
+        return path;
+    }
+
     abstract public void paintRhombus(Graphics2D g2, GridTile rhombus,
                                       GridPoint a, GridPoint b, GridPoint c, GridPoint d);
 

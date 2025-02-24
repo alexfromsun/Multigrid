@@ -29,15 +29,18 @@ public class MultigridFrame extends JFrame {
 
     private final JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
     private final JToolBar mainToolBar = new JToolBar();
-    private Multigrid multigrid = new Multigrid(5, 2, .2, 0);
+    private Multigrid multigrid = new Multigrid(5, 3, .2, 0);
     private final JButton zoomButton = new JButton("100%");
     private final JLabel statusBar = new JLabel();
     private JToolBar verticalToolBar = new JToolBar(JToolBar.VERTICAL);
     private HashMap<RhombusPainter, AbstractButton> verticalToolBarComponents = new HashMap<>();
 
     private FillRhombusPainter colorPainter = new FillRhombusPainter(multigrid.getTileAreaList());
+
     private List<RhombusPainter> beforePainterList = new ArrayList<>();
     private List<RhombusPainter> mainPainterList = new ArrayList<>();
+    private List<RhombusPainter> afterPainterList = new ArrayList<>();
+
     private boolean reverseRhombi;
 
     public MultigridFrame() {
@@ -156,15 +159,17 @@ public class MultigridFrame extends JFrame {
 
         verticalToolBar.addSeparator();
 
-        for (RhombusPainter beforePainter : beforePainterList) {
-            JCheckBox checkbox = new JCheckBox(beforePainter.getName());
+        ArrayList<RhombusPainter> combinedList = new ArrayList<>(beforePainterList);
+        combinedList.addAll(afterPainterList);
+        for (RhombusPainter painter : combinedList) {
+            JCheckBox checkbox = new JCheckBox(painter.getName());
             verticalToolBar.add(checkbox);
             checkbox.addChangeListener(e -> {
-                beforePainter.setEnabled(checkbox.isSelected());
+                painter.setEnabled(checkbox.isSelected());
                 tabbedPane.getSelectedComponent().repaint();
             });
-            beforePainter.setEnabled(false);
-            verticalToolBarComponents.put(beforePainter, checkbox);
+            painter.setEnabled(false);
+            verticalToolBarComponents.put(painter, checkbox);
         }
 
         add(verticalToolBar, BorderLayout.WEST);
@@ -186,20 +191,21 @@ public class MultigridFrame extends JFrame {
         double gridInset = (double) insetSpinner.getValue();
         multigrid = new Multigrid(symmetry, radius, offset, gridInset);
         colorPainter.setTileAreaList(multigrid.getTileAreaList());
+//        System.out.println("multigrid.getVertexIndexSet() = " + multigrid.getVertexIndexSet());
     }
 
     private void createPainterLists() {
         beforePainterList.add(colorPainter);
         colorPainter.setEnabled(false);
         beforePainterList.add(new DrawRhombusPainter(Color.ORANGE, "Initial tiling"));
-        beforePainterList.add(new DrawPenroseArrowsPainter());
+        afterPainterList.add(new DrawPenroseArrowsPainter());
         mainPainterList.add(new DrawRhombusPainter(Color.BLACK));
         mainPainterList.add(new DrawKitesAndDartsPainter());
         mainPainterList.add(new DrawCromwellTrapeziumPainter());
         mainPainterList.add(new DrawRibbonsPainter());
         mainPainterList.add(new DrawMyTilingPainter());
         mainPainterList.add(new DrawEquilateralAmmanPainter());
-        mainPainterList.add(new BlueRedArrows());
+        mainPainterList.add(new BlueRed());
     }
 
     private void updateSettings() {
@@ -207,6 +213,12 @@ public class MultigridFrame extends JFrame {
             boolean supported = beforePainter.isSymmetrySupported(multigrid.getSymmetry());
             AbstractButton button = verticalToolBarComponents.get(beforePainter);
             beforePainter.setEnabled(supported && button.isSelected());
+            button.setVisible(supported);
+        }
+        for (RhombusPainter afterPainter : afterPainterList) {
+            boolean supported = afterPainter.isSymmetrySupported(multigrid.getSymmetry());
+            AbstractButton button = verticalToolBarComponents.get(afterPainter);
+            afterPainter.setEnabled(supported && button.isSelected());
             button.setVisible(supported);
         }
         tabbedPane.removeAll();
@@ -333,6 +345,16 @@ public class MultigridFrame extends JFrame {
 
             for (GridTile tile : multigrid.getTileList()) {
                 mainPainter.paint(g2, tile, reverseRhombi);
+            }
+
+            if (afterPainterList != null && !afterPainterList.isEmpty()) {
+                for (GridTile tile : multigrid.getTileList()) {
+                    for (RhombusPainter afterPainter : afterPainterList) {
+                        if (afterPainter.isEnabled()) {
+                            afterPainter.paint(g2, tile, reverseRhombi);
+                        }
+                    }
+                }
             }
 
         }
