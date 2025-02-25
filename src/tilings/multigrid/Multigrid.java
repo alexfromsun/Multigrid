@@ -5,8 +5,8 @@ import java.util.*;
 public class Multigrid {
     private final int symmetry;
     private final int gridRadius;
-    private final double offset;
     private final List<Grid> gridList = new ArrayList<>();
+    private final List<Double> offsetList;
 
     private final List<GridLine> lineList = new ArrayList<>();
     private final HashMap<GridPoint, Set<GridLine>> intersectionMap = new HashMap<>();
@@ -24,20 +24,16 @@ public class Multigrid {
     private double tilingRadius;
     private double gridInset;
 
-    public Multigrid(int symmetry, int gridRadius, double offset, double gridInset) {
+    public Multigrid(int symmetry, int gridRadius, List<Double> offsetList, double gridInset) {
         this.gridRadius = gridRadius;
         this.symmetry = symmetry;
-        this.offset = offset;
+        this.offsetList = Collections.unmodifiableList(offsetList);
         this.gridInset = gridInset;
-        double[] offsetArray = new double[symmetry];
-        Arrays.fill(offsetArray, offset);
-
-//        offsetArray = new double[]{0, -.2, .3, -.4, .5};
 
         double multiplier = 2 * Math.PI / symmetry;
         for (int i = 0; i < symmetry; i++) {
             double angle = 2 * i * Math.PI / symmetry;
-            Grid grid = new Grid(angle, offsetArray[i], gridRadius, gridInset);
+            Grid grid = new Grid(angle, offsetList.get(i), gridRadius, gridInset);
             gridList.add(grid);
             lineList.addAll(grid.getLineList());
 
@@ -45,6 +41,10 @@ public class Multigrid {
             cosTable.add(Math.cos(i * multiplier));
         }
         calculateIntersections();
+    }
+
+    public List<Double> getOffsetList() {
+        return offsetList;
     }
 
     private void calculateIntersections() {
@@ -273,10 +273,6 @@ public class Multigrid {
 
     public int getSymmetry() {
         return symmetry;
-    }
-
-    public double getOffset() {
-        return offset;
     }
 
     public List<GridLine> getLineList() {

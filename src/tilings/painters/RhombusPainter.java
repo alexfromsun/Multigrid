@@ -5,6 +5,7 @@ import tilings.multigrid.*;
 import java.awt.*;
 import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
+import java.util.ArrayList;
 import java.util.List;
 
 public abstract class RhombusPainter {
@@ -60,6 +61,20 @@ public abstract class RhombusPainter {
         public Line(GridPoint a, GridPoint b) {
             super(a.x(), a.y(), b.x(), b.y());
         }
+    }
+
+    protected List<Color> createColorList(int size) {
+        List<Color> colorList = new ArrayList<>();
+        // Distribute the hue values evenly around the color wheel
+        for (int i = 0; i < size; i++) {
+            float hue = (float) i / size;     // 0.0 to <1.0
+            float saturation = 0.8f;      // set between 0.0 and 1.0
+            float brightness = 0.9f;      // set between 0.0 and 1.0
+            // Create the Color using HSB -> RGB conversion
+            Color color = Color.getHSBColor(hue, saturation, brightness);
+            colorList.add(color);
+        }
+        return colorList;
     }
 
     abstract public String getName();

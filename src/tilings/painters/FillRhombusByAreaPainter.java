@@ -7,27 +7,17 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FillRhombusPainter extends RhombusPainter {
+public class FillRhombusByAreaPainter extends RhombusPainter {
     private List<Double> tileAreaList;
     private List<Color> colorList;
 
-    public FillRhombusPainter(List<Double> tileAreaList) {
+    public FillRhombusByAreaPainter(List<Double> tileAreaList) {
         setTileAreaList(tileAreaList);
     }
 
     public void setTileAreaList(List<Double> tileAreaList) {
         this.tileAreaList = tileAreaList;
-        colorList = new ArrayList<>();
-        // Distribute the hue values evenly around the color wheel
-        int colorListSize = tileAreaList.size();
-        for (int i = 0; i < colorListSize; i++) {
-            float hue = (float) i / colorListSize;     // 0.0 to <1.0
-            float saturation = 0.8f;      // set between 0.0 and 1.0
-            float brightness = 0.9f;      // set between 0.0 and 1.0
-            // Create the Color using HSB -> RGB conversion
-            Color color = Color.getHSBColor(hue, saturation, brightness);
-            colorList.add(color);
-        }
+        colorList = createColorList(tileAreaList.size());
     }
 
     @Override
@@ -39,6 +29,6 @@ public class FillRhombusPainter extends RhombusPainter {
 
     @Override
     public String getName() {
-        return "Color";
+        return "Color by area";
     }
 }

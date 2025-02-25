@@ -4,16 +4,15 @@ import tilings.multigrid.*;
 import tilings.painters.*;
 
 import javax.swing.*;
+import javax.swing.border.BevelBorder;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.geom.*;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Set;
 
 import static java.awt.event.InputEvent.CTRL_DOWN_MASK;
 
@@ -25,17 +24,21 @@ public class MultigridFrame extends JFrame {
     private final JSpinner symmetrySpinner;
     private final JSpinner radiusSpinner;
     private final JSpinner offsetSpinner;
+//    private final JSpinner secondaryOffsetSpinner;
     private final JSpinner insetSpinner;
 
     private final JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
     private final JToolBar mainToolBar = new JToolBar();
-    private Multigrid multigrid = new Multigrid(5, 3, .2, 0);
+    private Multigrid multigrid = new Multigrid(5, 3, new ArrayList<>(Collections.nCopies(5, .2)), 0);
+
+    private final JButton dxfButton = new JButton("DXF");
     private final JButton zoomButton = new JButton("100%");
     private final JLabel statusBar = new JLabel();
     private JToolBar verticalToolBar = new JToolBar(JToolBar.VERTICAL);
     private HashMap<RhombusPainter, AbstractButton> verticalToolBarComponents = new HashMap<>();
 
-    private FillRhombusPainter colorPainter = new FillRhombusPainter(multigrid.getTileAreaList());
+    private FillRhombusByAreaPainter colorByAreaPainter = new FillRhombusByAreaPainter(multigrid.getTileAreaList());
+    private FillRhombusByIndicesPainter colorByIndicesPainter = new FillRhombusByIndicesPainter(multigrid.getVertexIndexSet());
 
     private List<RhombusPainter> beforePainterList = new ArrayList<>();
     private List<RhombusPainter> mainPainterList = new ArrayList<>();
@@ -67,7 +70,7 @@ public class MultigridFrame extends JFrame {
 
         mainToolBar.add(new JLabel("Offset "));
 
-        SpinnerNumberModel offsetModel = new SpinnerNumberModel(multigrid.getOffset(), -3, 3, 0.01);
+        SpinnerNumberModel offsetModel = new SpinnerNumberModel((double) multigrid.getOffsetList().getFirst(), -3, 3.0, 0.01);
         offsetSpinner = new JSpinner(offsetModel);
         offsetSpinner.setEditor(new JSpinner.NumberEditor(offsetSpinner, "#.##"));
         JFormattedTextField tf = ((JSpinner.DefaultEditor) offsetSpinner.getEditor()).getTextField();
@@ -125,9 +128,12 @@ public class MultigridFrame extends JFrame {
         insetSpinner.addChangeListener(changeListener);
 
         mainToolBar.add(Box.createHorizontalGlue());
+//        mainToolBar.add(dxfButton);
+        mainToolBar.addSeparator();
 
+
+        /*
         mainToolBar.add(zoomButton);
-
         // todo: fix the zoom button
         zoomButton.addActionListener(e ->
         {
@@ -151,7 +157,7 @@ public class MultigridFrame extends JFrame {
 
         minusButton.addActionListener(zoomAction);
         plusButton.addActionListener(zoomAction);
-
+*/
         add(mainToolBar, BorderLayout.PAGE_START);
         add(statusBar, BorderLayout.PAGE_END);
 
@@ -163,6 +169,7 @@ public class MultigridFrame extends JFrame {
         combinedList.addAll(afterPainterList);
         for (RhombusPainter painter : combinedList) {
             JCheckBox checkbox = new JCheckBox(painter.getName());
+//            checkbox.setBorder(BorderFactory.createLineBorder(Color.RED, 5));
             verticalToolBar.add(checkbox);
             checkbox.addChangeListener(e -> {
                 painter.setEnabled(checkbox.isSelected());
@@ -171,6 +178,20 @@ public class MultigridFrame extends JFrame {
             painter.setEnabled(false);
             verticalToolBarComponents.put(painter, checkbox);
         }
+        verticalToolBar.addSeparator();
+
+//        SpinnerNumberModel secondaryOffsetModel = new SpinnerNumberModel((double) multigrid.getOffsetList().getFirst(), -3, 3.0, 0.01);
+//        secondaryOffsetSpinner = new JSpinner(secondaryOffsetModel);
+//        secondaryOffsetSpinner.setAlignmentX(Component.LEFT_ALIGNMENT);
+//        secondaryOffsetSpinner.setEditor(new JSpinner.NumberEditor(secondaryOffsetSpinner, "#.##"));
+//        ((JSpinner.DefaultEditor) secondaryOffsetSpinner.getEditor()).getTextField().setColumns(3);
+//
+//        secondaryOffsetSpinner.setMaximumSize(secondaryOffsetSpinner.getMinimumSize());
+//        secondaryOffsetSpinner.setPreferredSize(secondaryOffsetSpinner.getMinimumSize());
+//        verticalToolBar.add(new JLabel("Every even index "));
+//        verticalToolBar.add(secondaryOffsetSpinner);
+//
+//        secondaryOffsetSpinner.addChangeListener(changeListener);
 
         add(verticalToolBar, BorderLayout.WEST);
 
@@ -188,15 +209,22 @@ public class MultigridFrame extends JFrame {
         int symmetry = (int) symmetrySpinner.getValue();
         int radius = (int) radiusSpinner.getValue();
         double offset = (double) offsetSpinner.getValue();
+//        double secondaryOffset = (double) secondaryOffsetSpinner.getValue();
+        ArrayList<Double> offsetList = new ArrayList<>();
+        for (int i = 0; i < symmetry; i++) {
+//            offsetList.add(i % 2 == 0 ? offset : secondaryOffset);
+            offsetList.add(offset);
+        }
         double gridInset = (double) insetSpinner.getValue();
-        multigrid = new Multigrid(symmetry, radius, offset, gridInset);
-        colorPainter.setTileAreaList(multigrid.getTileAreaList());
+        multigrid = new Multigrid(symmetry, radius, offsetList, gridInset);
+        colorByAreaPainter.setTileAreaList(multigrid.getTileAreaList());
+        colorByIndicesPainter.setVertexIndexSet(multigrid.getVertexIndexSet());
 //        System.out.println("multigrid.getVertexIndexSet() = " + multigrid.getVertexIndexSet());
     }
 
     private void createPainterLists() {
-        beforePainterList.add(colorPainter);
-        colorPainter.setEnabled(false);
+        beforePainterList.add(colorByAreaPainter);
+        beforePainterList.add(colorByIndicesPainter);
         beforePainterList.add(new DrawRhombusPainter(Color.ORANGE, "Initial tiling"));
         afterPainterList.add(new DrawPenroseArrowsPainter());
         mainPainterList.add(new DrawRhombusPainter(Color.BLACK));
@@ -407,7 +435,9 @@ public class MultigridFrame extends JFrame {
             double scale = (double) Math.min(viewWidth, viewHeight) / (2 * (multigrid.getTilingRadius() + 1));
             scale *= zoom;
             transform.scale(scale, scale);
-            transform.rotate(-Math.PI / (2 * multigrid.getSymmetry()));
+            if (multigrid.getSymmetry() %2 == 1) {
+                transform.rotate(-Math.PI / (2 * multigrid.getSymmetry()));
+            }
         }
 
         public AffineTransform getTransform() {
