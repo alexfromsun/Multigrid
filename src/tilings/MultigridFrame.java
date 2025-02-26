@@ -49,7 +49,7 @@ public class MultigridFrame extends JFrame {
     private boolean reverseRhombi;
 
     public MultigridFrame() {
-        setTitle("Collider frame");
+        setTitle("Multigrid playground");
         setExtendedState(JFrame.MAXIMIZED_BOTH);
 
         tabbedPane.addChangeListener(e -> revalidateTabbedPane());
@@ -208,7 +208,7 @@ public class MultigridFrame extends JFrame {
         tabbedPane.removeAll();
         for (RhombusPainter painter : mainPainterList) {
             if (painter.isSymmetrySupported(multigrid.getSymmetry())) {
-                tabbedPane.add(painter.getName(), new PainterScrollPane(new ColliderPanel(painter)));
+                tabbedPane.add(painter.getName(), new PainterScrollPane(new TilingPanel(painter)));
             }
         }
         verticalToolBar.revalidate();
@@ -216,17 +216,17 @@ public class MultigridFrame extends JFrame {
     }
 
     private void revalidateTabbedPane() {
-        ColliderPanel selectedPanel = getSelectedPanel();
+        TilingPanel selectedPanel = getSelectedPanel();
         if (selectedPanel != null) {
             selectedPanel.revalidate();
             selectedPanel.repaint();
         }
     }
 
-    private ColliderPanel getSelectedPanel() {
+    private TilingPanel getSelectedPanel() {
         JScrollPane scrollPane = (JScrollPane) tabbedPane.getSelectedComponent();
         if (scrollPane != null) {
-            return (ColliderPanel) scrollPane.getViewport().getView();
+            return (TilingPanel) scrollPane.getViewport().getView();
         }
         return null;
     }
@@ -246,7 +246,7 @@ public class MultigridFrame extends JFrame {
         @Override
         protected void processMouseWheelEvent(MouseWheelEvent e) {
             if ((e.getModifiersEx() & CTRL_DOWN_MASK) == CTRL_DOWN_MASK) {
-                ColliderPanel selectedPanel = getSelectedPanel();
+                TilingPanel selectedPanel = getSelectedPanel();
                 selectedPanel.updateZoom(e.getWheelRotation());
                 zoomButton.setText((int) (selectedPanel.getZoom() * 100) + "%");
             } else {
@@ -256,18 +256,18 @@ public class MultigridFrame extends JFrame {
 
         @Override
         public String toString() {
-            return "ScrollPane(colliderPanel)";
+            return "ScrollPane(tilingPanel)";
         }
     }
 
-    private class ColliderPanel extends JPanel {
+    private class TilingPanel extends JPanel {
         private final AffineTransform transform = new AffineTransform();
         private double zoom = 1;
         private final List<Color> colorList = new ArrayList<>();
 
         private final RhombusPainter mainPainter;
 
-        public ColliderPanel(RhombusPainter mainPainter) {
+        public TilingPanel(RhombusPainter mainPainter) {
             this.mainPainter = mainPainter;
             //ToolTipManager.sharedInstance().registerComponent(this);
         }
@@ -391,7 +391,7 @@ public class MultigridFrame extends JFrame {
             double scale = (double) Math.min(viewWidth, viewHeight) / (2 * (multigrid.getTilingRadius() + 1));
             scale *= zoom;
             transform.scale(scale, scale);
-            if (multigrid.getSymmetry() %2 == 1) {
+            if (multigrid.getSymmetry() % 2 == 1) {
                 transform.rotate(-Math.PI / (2 * multigrid.getSymmetry()));
             }
         }
@@ -479,21 +479,26 @@ public class MultigridFrame extends JFrame {
 
         // get the DXFGraphics object to draw into
         DXFGraphics dxfGraphics = dxfDocument.getGraphics();
-//        dxfGraphics.setTransform(getSelectedPanel().getTransform());
-
 
         // scaling to 1/4 square meter
         dxfGraphics.scale(250, 250);
         //moving the origin to the lower-left corner, as expected for dxf files
-        dxfGraphics.translate(1, -1);
+//        dxfGraphics.translate(1, -1);
+
+        if (multigrid.getSymmetry() % 2 == 1) {
+            dxfGraphics.rotate(-Math.PI / (2 * multigrid.getSymmetry()));
+        }
 
         // supply this as a Graphics subclass object to our main Draw method
         dxfDocument.setLayer("Cut");
-        getSelectedPanel().debug(dxfGraphics);
-        getSelectedPanel().paintComponent(dxfGraphics);
+
+        for (GridTile tile : multigrid.getTileList()) {
+            getSelectedPanel().mainPainter.paint(dxfGraphics, tile, reverseRhombi);
+        }
 
         dxfDocument.setLayer("Construction");
-        dxfGraphics.drawRect(-1, -1, 2, 2);
+        double r = multigrid.getTilingRadius();
+        dxfGraphics.drawOval(-r, -r, 2 * r, 2 * r);
 
         // get the DXF output (just text)
         String stringOutput = dxfDocument.toDXFString();
