@@ -1,16 +1,19 @@
 package tilings;
 
+import com.jsevy.jdxf.DXFDocument;
+import com.jsevy.jdxf.DXFGraphics;
 import tilings.multigrid.*;
 import tilings.painters.*;
 
 import javax.swing.*;
-import javax.swing.border.BevelBorder;
 import javax.swing.event.ChangeListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.geom.*;
+import java.io.File;
+import java.io.FileWriter;
 import java.util.*;
 import java.util.List;
 
@@ -24,7 +27,6 @@ public class MultigridFrame extends JFrame {
     private final JSpinner symmetrySpinner;
     private final JSpinner radiusSpinner;
     private final JSpinner offsetSpinner;
-//    private final JSpinner secondaryOffsetSpinner;
     private final JSpinner insetSpinner;
 
     private final JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
@@ -128,36 +130,11 @@ public class MultigridFrame extends JFrame {
         insetSpinner.addChangeListener(changeListener);
 
         mainToolBar.add(Box.createHorizontalGlue());
-//        mainToolBar.add(dxfButton);
+        mainToolBar.add(dxfButton);
+        dxfButton.addActionListener(e -> writeDxf());
+
         mainToolBar.addSeparator();
 
-
-        /*
-        mainToolBar.add(zoomButton);
-        // todo: fix the zoom button
-        zoomButton.addActionListener(e ->
-        {
-            getSelectedPanel().setZoom(1);
-            zoomButton.setText((int) (getSelectedPanel().getZoom() * 100) + "%");
-        });
-        mainToolBar.addSeparator();
-        JButton plusButton = new JButton("+");
-        plusButton.setToolTipText("Ctrl +");
-
-        mainToolBar.add(plusButton);
-        JButton minusButton = new JButton("-");
-        minusButton.setToolTipText("Ctrl -");
-        mainToolBar.add(minusButton);
-
-        ActionListener zoomAction = e -> {
-            int direction = e.getSource() == plusButton ? -1 : 1;
-            getSelectedPanel().updateZoom(direction);
-            zoomButton.setText((int) (getSelectedPanel().getZoom() * 100) + "%");
-        };
-
-        minusButton.addActionListener(zoomAction);
-        plusButton.addActionListener(zoomAction);
-*/
         add(mainToolBar, BorderLayout.PAGE_START);
         add(statusBar, BorderLayout.PAGE_END);
 
@@ -169,7 +146,6 @@ public class MultigridFrame extends JFrame {
         combinedList.addAll(afterPainterList);
         for (RhombusPainter painter : combinedList) {
             JCheckBox checkbox = new JCheckBox(painter.getName());
-//            checkbox.setBorder(BorderFactory.createLineBorder(Color.RED, 5));
             verticalToolBar.add(checkbox);
             checkbox.addChangeListener(e -> {
                 painter.setEnabled(checkbox.isSelected());
@@ -179,20 +155,6 @@ public class MultigridFrame extends JFrame {
             verticalToolBarComponents.put(painter, checkbox);
         }
         verticalToolBar.addSeparator();
-
-//        SpinnerNumberModel secondaryOffsetModel = new SpinnerNumberModel((double) multigrid.getOffsetList().getFirst(), -3, 3.0, 0.01);
-//        secondaryOffsetSpinner = new JSpinner(secondaryOffsetModel);
-//        secondaryOffsetSpinner.setAlignmentX(Component.LEFT_ALIGNMENT);
-//        secondaryOffsetSpinner.setEditor(new JSpinner.NumberEditor(secondaryOffsetSpinner, "#.##"));
-//        ((JSpinner.DefaultEditor) secondaryOffsetSpinner.getEditor()).getTextField().setColumns(3);
-//
-//        secondaryOffsetSpinner.setMaximumSize(secondaryOffsetSpinner.getMinimumSize());
-//        secondaryOffsetSpinner.setPreferredSize(secondaryOffsetSpinner.getMinimumSize());
-//        verticalToolBar.add(new JLabel("Every even index "));
-//        verticalToolBar.add(secondaryOffsetSpinner);
-//
-//        secondaryOffsetSpinner.addChangeListener(changeListener);
-
         add(verticalToolBar, BorderLayout.WEST);
 
         updateStatusBar();
@@ -209,14 +171,8 @@ public class MultigridFrame extends JFrame {
         int symmetry = (int) symmetrySpinner.getValue();
         int radius = (int) radiusSpinner.getValue();
         double offset = (double) offsetSpinner.getValue();
-//        double secondaryOffset = (double) secondaryOffsetSpinner.getValue();
-        ArrayList<Double> offsetList = new ArrayList<>();
-        for (int i = 0; i < symmetry; i++) {
-//            offsetList.add(i % 2 == 0 ? offset : secondaryOffset);
-            offsetList.add(offset);
-        }
         double gridInset = (double) insetSpinner.getValue();
-        multigrid = new Multigrid(symmetry, radius, offsetList, gridInset);
+        multigrid = new Multigrid(symmetry, radius, Collections.nCopies(symmetry, offset), gridInset);
         colorByAreaPainter.setTileAreaList(multigrid.getTileAreaList());
         colorByIndicesPainter.setVertexIndexSet(multigrid.getVertexIndexSet());
 //        System.out.println("multigrid.getVertexIndexSet() = " + multigrid.getVertexIndexSet());
@@ -233,7 +189,7 @@ public class MultigridFrame extends JFrame {
         mainPainterList.add(new DrawRibbonsPainter());
         mainPainterList.add(new DrawMyTilingPainter());
         mainPainterList.add(new DrawEquilateralAmmanPainter());
-        mainPainterList.add(new BlueRedPainter());
+        mainPainterList.add(new TwoLayersPainter());
     }
 
     private void updateSettings() {
@@ -486,7 +442,10 @@ public class MultigridFrame extends JFrame {
         private static void drawLine(Graphics2D g2, GridLine line) {
             AffineTransform t = g2.getTransform();
             Rectangle clipBounds = g2.getClipBounds();
-            int lineLength = clipBounds.width + clipBounds.height;
+            int lineLength = 10;
+            if (clipBounds != null) {
+                lineLength = clipBounds.width + clipBounds.height;
+            }
             g2.rotate(line.getAngle() + Math.PI / 2);
             g2.translate(0, -line.getOffset());
             g2.drawLine(-lineLength / 2, 0, lineLength, 0);
@@ -502,6 +461,67 @@ public class MultigridFrame extends JFrame {
 
         private void drawPoint(Graphics2D g2, GridPoint point) {
             fillCircle(g2, point.x(), point.y(), .05);
+        }
+    }
+
+    private void writeDxf() {
+        DXFDocument dxfDocument = new DXFDocument("Example DXF output from Java DXFGraphics");
+        // set units to mm
+        dxfDocument.setUnits(4);
+        // set precision digits to 8
+        dxfDocument.setPrecisionDigits(8);
+        // set to generate zero-length lines; default is to generate DXF point when a zero-length line is drawn
+        dxfDocument.generatePoints(false);
+
+        // set viewport params
+        dxfDocument.setViewportScale(70);
+        dxfDocument.setViewportCenter(120, 120);
+
+        // get the DXFGraphics object to draw into
+        DXFGraphics dxfGraphics = dxfDocument.getGraphics();
+//        dxfGraphics.setTransform(getSelectedPanel().getTransform());
+
+
+        // scaling to 1/4 square meter
+        dxfGraphics.scale(250, 250);
+        //moving the origin to the lower-left corner, as expected for dxf files
+        dxfGraphics.translate(1, -1);
+
+        // supply this as a Graphics subclass object to our main Draw method
+        dxfDocument.setLayer("Cut");
+        getSelectedPanel().debug(dxfGraphics);
+        getSelectedPanel().paintComponent(dxfGraphics);
+
+        dxfDocument.setLayer("Construction");
+        dxfGraphics.drawRect(-1, -1, 2, 2);
+
+        // get the DXF output (just text)
+        String stringOutput = dxfDocument.toDXFString();
+
+        JFileChooser chooser = new JFileChooser(new File(System.getProperty("user.dir")));
+        chooser.setSelectedFile(new File("Puzzle.dxf"));
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("DXF", "dxf");
+        chooser.setFileFilter(filter);
+        int returnVal = chooser.showSaveDialog(this);
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = chooser.getSelectedFile();
+
+            if (selectedFile.exists()) {
+                int result = JOptionPane.showConfirmDialog(chooser, "The file exists, overwrite?", "Existing file", JOptionPane.YES_NO_CANCEL_OPTION);
+                if (result == JOptionPane.CANCEL_OPTION) {
+                    chooser.cancelSelection();
+                    return;
+                }
+            }
+            try {
+                FileWriter fileWriter = new FileWriter(selectedFile);
+                fileWriter.write(stringOutput);
+                fileWriter.flush();
+                fileWriter.close();
+            } catch (Exception e) {
+                System.out.println("Exception while saving DXF file: " + e);
+            }
+            chooser.approveSelection();
         }
     }
 }
