@@ -19,4 +19,4 @@ If you know how to tweak the multigrid algorithm to make it generate the 7-fold 
 </p>
 
 Have fun!  
-alexp
+Alex
