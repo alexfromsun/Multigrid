@@ -92,9 +92,6 @@ public class Multigrid {
             }
         }
 
-        // todo: does sorting needed at all?
-        sortIntersectionPoints();
-
         calculateTiles();
     }
 
@@ -246,13 +243,6 @@ public class Multigrid {
 
     public double getTilingRadius() {
         return tilingRadius;
-    }
-
-    private void sortIntersectionPoints() {
-        for (GridLine line : lineMap.keySet()) {
-            List<GridPoint> points = lineMap.get(line);
-            points.sort(line);
-        }
     }
 
     public Set<GridPoint> getIntersections() {
