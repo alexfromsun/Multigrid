@@ -7,7 +7,7 @@ The direction of a rhombus is not automatically obvious when you use the multigr
 Note that the Penrose arrows, Kites and Darts and all other variations work well only for the symmetrical tilings, when the offset gives an integer when multiplied by 5.
 The offset values like 0.2, 0.4, 0.6, 0.8 give the correct and symmetrical Penrose tilings. For values 0.4 and 0.6 click the "Reverse rhombi" combobox to fix the directions. 
 
-If you know how to tweak the multigrid algorithm to make it generate the 7-fold tilings which respect the matching rules similar to the Penrose arrows, please drop me a note.  
+If you know how to tweak the multigrid algorithm to make it generate the 7-fold tilings which respect the matching rules similar to the Penrose arrows, please drop me a note in the Discussion tab.  
 
 "Color by indices" gives you a glimpse of a higher-dimensional structure behind the multigrid.
 
@@ -19,4 +19,4 @@ If you know how to tweak the multigrid algorithm to make it generate the 7-fold 
 </p>
 
 Have fun!  
-alexp
+Alex
