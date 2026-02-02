@@ -1,7 +1,7 @@
 Here is a java Swing application for exploring the symmetrical aperiodic tilings based on the de Brujin's multigrid algorithm.
-I was specifically interested in playing with the Penrose rhombi (Symmetry equals 5), so this application generates some variations specifically for this tiling.
+I was specifically interested in playing with the Penrose rhombi (Symmetry equals 5), so this application generates some variations of this particular tiling.
 
-It was an interesting task to find out how to calculate the direction of the arrows that specify the matching rules.
+It took me some time to find out how to calculate the direction of the arrows that specify the matching rules.
 The direction of a rhombus is not obvious when you use the multigrid algorithm. 
 
 Note that the Penrose arrows, Kites and Darts and all other variations work well only for the symmetrical tilings, when the offset gives an integer when multiplied by 5.
